@@ -22,11 +22,11 @@ struct EntryDetailView: View {
     @State private var name: String
     @State private var loginURL: String
     @State private var username: String
-    @State private var password: String = "" // gol = "nu schimba parola existenta"
+    @State private var password: String
     @State private var licenseType: LicenseType
     @State private var hasExpiry: Bool
     @State private var expiresAt: Date
-    @State private var serial: String = ""   // gol = "nu schimba seria existenta"
+    @State private var serial: String
     @State private var downloadURL: String
     @State private var updateURL: String
     @State private var notes: String
@@ -53,6 +53,17 @@ struct EntryDetailView: View {
         _updateURL = State(initialValue: initialEntry.updateURL ?? "")
         _notes = State(initialValue: initialEntry.notes ?? "")
         _attachments = State(initialValue: initialEntry.attachments)
+
+        // PITFALL FIXED 2026-08-24 (bug critic de UX raportat de Cristi):
+        // campurile de parola/serie erau write-only ("gol = nu schimba"),
+        // deci userul NU putea revedea ce salvase deja — anula scopul unui
+        // "seif". Acum citim valoarea reala din Keychain la deschidere,
+        // exact ca username/loginURL — SecretField (eye-toggle + copiere)
+        // o afiseaza, ascunsa implicit, dar niciodata inaccesibila.
+        _password = State(initialValue: initialEntry.hasPassword
+            ? ((try? VaultKeychainStore.read(forEntryID: initialEntry.id, slot: .password)) ?? "") : "")
+        _serial = State(initialValue: initialEntry.hasSerial
+            ? ((try? VaultKeychainStore.read(forEntryID: initialEntry.id, slot: .serial)) ?? "") : "")
     }
 
     var body: some View {
@@ -66,7 +77,7 @@ struct EntryDetailView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         TextField("URL login", text: $loginURL).textFieldStyle(.roundedBorder)
                         TextField("Utilizator", text: $username).textFieldStyle(.roundedBorder)
-                        SecureField(passwordPlaceholder, text: $password).textFieldStyle(.roundedBorder)
+                        SecretField(placeholder: "Parolă", value: $password)
                     }
                     .padding(8)
                 }
@@ -83,7 +94,7 @@ struct EntryDetailView: View {
                             DatePicker("Expiră la", selection: $expiresAt, displayedComponents: .date)
                         }
 
-                        SecureField(serialPlaceholder, text: $serial).textFieldStyle(.roundedBorder)
+                        SecretField(placeholder: "Cheie de serie", value: $serial)
                     }
                     .padding(8)
                 }
@@ -148,36 +159,37 @@ struct EntryDetailView: View {
         .navigationTitle(name.isEmpty ? "Aplicație nouă" : name)
     }
 
-    private var passwordPlaceholder: String {
-        isNew ? "Parolă (opțional)" : "Parolă nouă (gol = nu o schimba)"
-    }
-    private var serialPlaceholder: String {
-        isNew ? "Cheie de serie (opțional)" : "Cheie de serie nouă (gol = nu o schimba)"
-    }
-
+    /// Camp gol la Salvează = "fara secret" — semantica e acum directa
+    /// (ce vezi in camp e ce se salveaza), nu "gol = nu schimba" (bug de
+    /// UX fixat 2026-08-24: campul era populat mereu la deschidere, deci
+    /// vidarea lui e o alegere explicita a userului de a sterge secretul,
+    /// nu un no-op accidental).
     private func save() {
-        let existing = store.entries.first { $0.id == entryID }
-
         var entry = VaultEntry(
             id: entryID,
             name: name,
             loginURL: loginURL.isEmpty ? nil : loginURL,
             username: username.isEmpty ? nil : username,
-            hasPassword: existing?.hasPassword ?? false,
             licenseType: licenseType,
             expiresAt: hasExpiry ? expiresAt : nil,
-            hasSerial: existing?.hasSerial ?? false,
             downloadURL: downloadURL.isEmpty ? nil : downloadURL,
             updateURL: updateURL.isEmpty ? nil : updateURL,
             notes: notes.isEmpty ? nil : notes,
             attachments: attachments
         )
 
-        if !password.isEmpty {
+        if password.isEmpty {
+            try? VaultKeychainStore.delete(forEntryID: entryID, slot: .password)
+            entry.hasPassword = false
+        } else {
             try? VaultKeychainStore.save(secret: password, forEntryID: entryID, slot: .password)
             entry.hasPassword = true
         }
-        if !serial.isEmpty {
+
+        if serial.isEmpty {
+            try? VaultKeychainStore.delete(forEntryID: entryID, slot: .serial)
+            entry.hasSerial = false
+        } else {
             try? VaultKeychainStore.save(secret: serial, forEntryID: entryID, slot: .serial)
             entry.hasSerial = true
         }
