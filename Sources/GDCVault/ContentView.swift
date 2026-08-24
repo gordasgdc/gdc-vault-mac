@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import GDCVaultCore
 
 /// Prima versiune de baza: lista + adaugare/editare + banner de expirare.
@@ -9,6 +10,8 @@ struct ContentView: View {
     @StateObject private var store = VaultMetadataStore()
     @State private var editingEntry: VaultEntry?
     @State private var showingNew = false
+    @State private var showImportError = false
+    @State private var importErrorMessage = ""
 
     var body: some View {
         NavigationSplitView {
@@ -24,11 +27,30 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem {
                     Button {
+                        exportVault()
+                    } label: {
+                        Label("Export…", systemImage: "square.and.arrow.up")
+                    }
+                }
+                ToolbarItem {
+                    Button {
+                        importVault()
+                    } label: {
+                        Label("Import…", systemImage: "square.and.arrow.down")
+                    }
+                }
+                ToolbarItem {
+                    Button {
                         showingNew = true
                     } label: {
                         Label("Adaugă", systemImage: "plus")
                     }
                 }
+            }
+            .alert("Import eșuat", isPresented: $showImportError) {
+                Button("OK") {}
+            } message: {
+                Text(importErrorMessage)
             }
         } detail: {
             if !store.expiringSoon().isEmpty {
@@ -45,6 +67,49 @@ struct ContentView: View {
             EntryEditorView(store: store, existing: nil)
         }
         .frame(minWidth: 720, minHeight: 480)
+    }
+
+    private func exportVault() {
+        guard let password = PasswordPromptWindow.ask(
+            title: "Parolă Master de export",
+            message: "Backup-ul (licențe, notițe, parole, atașamente) va fi criptat AES-256 cu această parolă. Reține-o — fără ea, backup-ul nu poate fi restaurat."
+        ) else { return }
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "gdc-vault-backup.gdcvault"
+        panel.message = "Alege unde salvezi backup-ul criptat."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            try VaultExportImport.export(to: url, password: password, entries: store.entries)
+        } catch {
+            importErrorMessage = "Exportul a eșuat: \(error.localizedDescription)"
+            showImportError = true
+        }
+    }
+
+    private func importVault() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = []
+        panel.allowsOtherFileTypes = true
+        panel.canChooseDirectories = false
+        panel.message = "Alege fișierul de backup (.gdcvault) de importat."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        guard let password = PasswordPromptWindow.ask(
+            title: "Parolă Master de import",
+            message: "Introdu parola cu care a fost criptat acest backup."
+        ) else { return }
+
+        do {
+            try VaultExportImport.importBundle(from: url, password: password, into: store)
+        } catch VaultExportImport.ExportError.wrongPassword {
+            importErrorMessage = "Parolă greșită sau fișier corupt — nu s-a putut decripta backup-ul."
+            showImportError = true
+        } catch {
+            importErrorMessage = "Importul a eșuat: \(error.localizedDescription)"
+            showImportError = true
+        }
     }
 }
 
