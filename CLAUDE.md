@@ -93,3 +93,12 @@ Compilează release, împachetează `GDC Vault.app` (cu `AppIcon.icns`),
 semnează cu certificatul local `CursorPro` și instalează în
 `/Applications/GDC Vault.app` — exact tiparul din `build_app.sh` al
 `GDCPluginManager`, minus bundle-ul Python (nefolosit aici).
+
+## CI/CD (2026-08-24)
+
+Repo-uri publice pe GitHub: `gordasgdc/gdc-vault-mac` + `gordasgdc/gdc-vault-win`.
+`.github/workflows/build-mac.yml` — ruleaza pe `macos-latest` la orice push pe
+`main`. **NU reutilizeaza `build_app.sh`** (acela instaleaza direct in
+`/Applications` si semneaza cu certificatul local `CursorPro` al lui Cristi,
+inexistent pe runner) — impacheteaza manual, semnare ad-hoc (`--sign -`),
+doar artefact descarcabil + verificare independenta de mediu.
