@@ -51,7 +51,7 @@ struct ContentView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("Activează licența (5€)") { showActivation = true }
+            Button("Donează 5€ pentru licență") { showActivation = true }
                 .buttonStyle(.plain)
                 .foregroundStyle(.green)
                 .font(.system(size: 11, weight: .semibold))

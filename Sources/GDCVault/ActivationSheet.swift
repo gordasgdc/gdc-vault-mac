@@ -39,14 +39,14 @@ struct ActivationSheet: View {
                 Text(error).foregroundStyle(.red).font(.system(size: 12))
             }
 
-            Text("Licență Lifetime — 5€ (preț promoțional, valabil în faza de dezvoltare/beta; crește după obținerea certificatelor oficiale de semnare Apple/Windows).")
+            Text("Licență Lifetime — 5€ donație unică, nu un preț de listă. Mă ajută să acopăr costurile de dezvoltare. Ofertă valabilă în faza de dezvoltare/beta; crește după obținerea certificatelor oficiale de semnare Apple/Windows.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             Button {
-                NSWorkspace.shared.open(WhatsAppLink.url(text: "Bună, vreau să cumpăr licența GDC Vault (5€). ID calculator: \(MachineID.display)"))
+                NSWorkspace.shared.open(WhatsAppLink.url(text: "Bună, vreau să donez 5€ pentru licența GDC Vault. ID calculator: \(MachineID.display)"))
             } label: {
-                Label("Cumpără prin WhatsApp", systemImage: "message.fill")
+                Label("Donează prin WhatsApp", systemImage: "message.fill")
                     .font(.system(size: 12))
             }
             .buttonStyle(.bordered)
