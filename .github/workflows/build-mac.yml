@@ -1,0 +1,39 @@
+name: Build GDC Vault (Mac)
+
+# Se ruleaza automat la orice push pe main, si manual din tab-ul Actions.
+# NU reutilizeaza build_app.sh (acela e facut pentru masina locala a lui
+# Cristi: instaleaza direct in /Applications si semneaza cu certificatul
+# lui local "CursorPro", care nu exista pe runner-ul GitHub) — aici
+# impachetam manual si semnam ad-hoc (--sign -, fara identitate), doar
+# ca sa avem un artefact descarcabil + o verificare independenta de build.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Descarca codul din repo
+        uses: actions/checkout@v4
+
+      - name: Compileaza (release)
+        run: swift build -c release --product GDCVault
+
+      - name: Impacheteaza "GDC Vault.app"
+        run: |
+          APP="dist/GDC Vault.app"
+          rm -rf dist
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp .build/release/GDCVault "$APP/Contents/MacOS/GDCVault"
+          cp Info.plist "$APP/Contents/Info.plist"
+          cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --verbose "$APP"
+
+      - name: Salveaza .app ca artefact descarcabil
+        uses: actions/upload-artifact@v4
+        with:
+          name: GDCVault-Mac-build
+          path: dist/GDC Vault.app
