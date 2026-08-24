@@ -10,6 +10,8 @@ import GDCVaultCore
 /// resurse) pe aceeași fișă — vezi EntryDetailView.
 struct ContentView: View {
     @StateObject private var store = VaultMetadataStore()
+    @ObservedObject private var license = LicenseManager.shared
+    @State private var showActivation = false
     @State private var selectedEntryID: UUID?
     /// Non-nil cât timp se completează o intrare nouă, ÎNCĂ nesalvată —
     /// ținută separat de `store.entries` ca să nu apară în listă (și deci
@@ -26,6 +28,40 @@ struct ContentView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            if !license.isLicensed {
+                trialBanner
+            }
+            mainSplitView
+        }
+        .sheet(isPresented: $showActivation) {
+            ActivationSheet(license: license, isPresented: $showActivation)
+        }
+    }
+
+    /// Banner discret, mereu vizibil cat timp NU exista o licenta activa
+    /// — in proba, arata zilele ramase; dupa expirare, invita la activare.
+    /// NU blocheaza nimic singur — vezi gating-ul real pe butonul
+    /// "Adauga aplicatie" mai jos (nota de arhitectura din LicenseManager).
+    private var trialBanner: some View {
+        HStack {
+            Text(license.isTrialActive
+                 ? "Probă gratuită — \(license.trialDaysRemaining) zile rămase"
+                 : "Proba a expirat — poți vizualiza și exporta datele existente")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Activează licența (5€)") { showActivation = true }
+                .buttonStyle(.plain)
+                .foregroundStyle(.green)
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.08))
+    }
+
+    private var mainSplitView: some View {
         NavigationSplitView {
             sidebar
         } detail: {
@@ -65,6 +101,7 @@ struct ContentView: View {
                 Text("GDC Vault").font(.title2).fontWeight(.bold)
 
                 Button {
+                    guard license.isUnlocked else { showActivation = true; return }
                     draftEntry = VaultEntry(name: "")
                     selectedEntryID = nil
                 } label: {
