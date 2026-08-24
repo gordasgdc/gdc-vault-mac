@@ -7,26 +7,36 @@ import Security
 /// export/backup necriptat, si (optional, mai tarziu) Face ID/Touch ID pe
 /// citire prin `kSecUseAuthenticationContext`.
 ///
-/// Service e fix ("com.gordas.gdcvault"), account e `entry.id.uuidString`
-/// — o intrare Vault = un item Keychain. Asta face stergerea unei intrari
-/// simpla (un singur `delete`) si evita coliziuni intre doua intrari cu
-/// acelasi nume afisat.
+/// PITFALL FIXED 2026-08-24: prima versiune avea UN SINGUR secret per
+/// intrare (fie parola, fie cheia de serie) — dar o fisa unificata de
+/// produs poate avea AMBELE simultan (cont de login + cheie de serie
+/// pentru același Adobe/Motion Array). Acum fiecare intrare are DOUA
+/// sloturi independente in Keychain, distinse prin account:
+/// `<id>.password` si `<id>.serial`.
 public enum VaultKeychainStore {
     private static let service = "com.gordas.gdcvault"
+
+    public enum SecretSlot: String {
+        case password
+        case serial
+    }
 
     public enum StoreError: Error {
         case unhandled(OSStatus)
     }
 
-    public static func save(secret: String, forEntryID id: UUID) throws {
-        let account = id.uuidString
+    private static func account(for id: UUID, slot: SecretSlot) -> String {
+        "\(id.uuidString).\(slot.rawValue)"
+    }
+
+    public static func save(secret: String, forEntryID id: UUID, slot: SecretSlot) throws {
+        let account = account(for: id, slot: slot)
         let data = Data(secret.utf8)
 
-        // Sterge orice item vechi pentru acelasi id inainte de a scrie —
-        // SecItemAdd esueaza cu errSecDuplicateItem daca deja exista, si
-        // SecItemUpdate ar complica inutil query-ul pentru un caz atat de rar
-        // (schimbarea unei parole existente).
-        try? delete(forEntryID: id)
+        // Sterge orice item vechi pentru acelasi (id, slot) inainte de a
+        // scrie — SecItemAdd esueaza cu errSecDuplicateItem daca deja
+        // exista.
+        try? delete(forEntryID: id, slot: slot)
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -42,11 +52,11 @@ public enum VaultKeychainStore {
         guard status == errSecSuccess else { throw StoreError.unhandled(status) }
     }
 
-    public static func read(forEntryID id: UUID) throws -> String? {
+    public static func read(forEntryID id: UUID, slot: SecretSlot) throws -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString,
+            kSecAttrAccount as String: account(for: id, slot: slot),
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
@@ -60,15 +70,22 @@ public enum VaultKeychainStore {
     }
 
     /// Idempotent: stergerea unei intrari fara secret nu trebuie sa arunce.
-    public static func delete(forEntryID id: UUID) throws {
+    public static func delete(forEntryID id: UUID, slot: SecretSlot) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: account(for: id, slot: slot)
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw StoreError.unhandled(status)
         }
+    }
+
+    /// Sterge ambele sloturi (parola + serial) pentru o intrare — apelat
+    /// la stergerea intregii intrari din Vault.
+    public static func deleteAll(forEntryID id: UUID) throws {
+        try delete(forEntryID: id, slot: .password)
+        try delete(forEntryID: id, slot: .serial)
     }
 }

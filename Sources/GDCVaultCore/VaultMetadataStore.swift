@@ -53,7 +53,7 @@ public final class VaultMetadataStore: ObservableObject {
     /// liber).
     public func delete(_ entry: VaultEntry) {
         entries.removeAll { $0.id == entry.id }
-        try? VaultKeychainStore.delete(forEntryID: entry.id)
+        try? VaultKeychainStore.deleteAll(forEntryID: entry.id)
         AttachmentStore.removeAll(for: entry.id)
         save()
     }

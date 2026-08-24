@@ -32,7 +32,8 @@ public enum VaultExportImport {
 
     private struct ExportEntry: Codable {
         let entry: VaultEntry
-        let secret: String?               // nil daca entry.hasSecret == false
+        let password: String?             // nil daca entry.hasPassword == false
+        let serial: String?                // nil daca entry.hasSerial == false
         let attachments: [ExportAttachment]
     }
 
@@ -47,7 +48,8 @@ public enum VaultExportImport {
     public static func export(to fileURL: URL, password: String, entries: [VaultEntry]) throws {
         var exportEntries: [ExportEntry] = []
         for entry in entries {
-            let secret = entry.hasSecret ? try VaultKeychainStore.read(forEntryID: entry.id) : nil
+            let password = entry.hasPassword ? try VaultKeychainStore.read(forEntryID: entry.id, slot: .password) : nil
+            let serial = entry.hasSerial ? try VaultKeychainStore.read(forEntryID: entry.id, slot: .serial) : nil
 
             var attachments: [ExportAttachment] = []
             for ref in entry.attachments {
@@ -56,7 +58,7 @@ public enum VaultExportImport {
                 attachments.append(ExportAttachment(ref: ref, dataBase64: data.base64EncodedString()))
             }
 
-            exportEntries.append(ExportEntry(entry: entry, secret: secret, attachments: attachments))
+            exportEntries.append(ExportEntry(entry: entry, password: password, serial: serial, attachments: attachments))
         }
 
         let bundle = ExportBundle(formatVersion: 1, exportedAt: Date(), entries: exportEntries)
@@ -109,9 +111,13 @@ public enum VaultExportImport {
 
         for exportEntry in bundle.entries {
             var entry = exportEntry.entry
-            if let secret = exportEntry.secret {
-                try VaultKeychainStore.save(secret: secret, forEntryID: entry.id)
-                entry.hasSecret = true
+            if let password = exportEntry.password {
+                try VaultKeychainStore.save(secret: password, forEntryID: entry.id, slot: .password)
+                entry.hasPassword = true
+            }
+            if let serial = exportEntry.serial {
+                try VaultKeychainStore.save(secret: serial, forEntryID: entry.id, slot: .serial)
+                entry.hasSerial = true
             }
 
             var restoredAttachments: [AttachmentRef] = []

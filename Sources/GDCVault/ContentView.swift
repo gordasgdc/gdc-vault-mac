@@ -2,71 +2,108 @@ import SwiftUI
 import AppKit
 import GDCVaultCore
 
-/// Prima versiune de baza: lista + adaugare/editare + banner de expirare.
-/// NU are inca licentiere-la-pornire cablata in UI (LicenseCore e deja
-/// copiat in GDCVaultCore, gata de folosit cand facem ecranul de
-/// activare — vezi LicenseCore.swift / MachineID.swift).
+/// ARHITECTURA UI (rescrisă 2026-08-24, la cererea lui Cristi): sidebar
+/// stânga cu acțiuni PRINCIPALE vizibile direct (nu ascunse într-un meniu
+/// mic) — Adaugă/Export/Import deasupra listei — și fișa completă a
+/// produsului selectat în dreapta, NU într-un sheet modal. Fiecare
+/// intrare = un produs, cu tot ce ține de el (credențiale + licențiere +
+/// resurse) pe aceeași fișă — vezi EntryDetailView.
 struct ContentView: View {
     @StateObject private var store = VaultMetadataStore()
-    @State private var editingEntry: VaultEntry?
-    @State private var showingNew = false
+    @State private var selectedEntryID: UUID?
+    /// Non-nil cât timp se completează o intrare nouă, ÎNCĂ nesalvată —
+    /// ținută separat de `store.entries` ca să nu apară în listă (și deci
+    /// să nu fie confundată cu o intrare reală) până la primul Salvează.
+    @State private var draftEntry: VaultEntry?
+
     @State private var showImportError = false
     @State private var importErrorMessage = ""
 
+    private var displayedEntry: VaultEntry? {
+        if let draftEntry { return draftEntry }
+        guard let selectedEntryID else { return nil }
+        return store.entries.first { $0.id == selectedEntryID }
+    }
+
     var body: some View {
         NavigationSplitView {
-            List(store.entries) { entry in
-                Button {
-                    editingEntry = entry
-                } label: {
-                    VaultRow(entry: entry)
-                }
-                .buttonStyle(.plain)
-            }
-            .navigationTitle("GDC Vault")
-            .toolbar {
-                ToolbarItem {
-                    Button {
-                        exportVault()
-                    } label: {
-                        Label("Export…", systemImage: "square.and.arrow.up")
-                    }
-                }
-                ToolbarItem {
-                    Button {
-                        importVault()
-                    } label: {
-                        Label("Import…", systemImage: "square.and.arrow.down")
-                    }
-                }
-                ToolbarItem {
-                    Button {
-                        showingNew = true
-                    } label: {
-                        Label("Adaugă", systemImage: "plus")
-                    }
-                }
-            }
-            .alert("Import eșuat", isPresented: $showImportError) {
-                Button("OK") {}
-            } message: {
-                Text(importErrorMessage)
-            }
+            sidebar
         } detail: {
-            if !store.expiringSoon().isEmpty {
-                ExpiringSoonBanner(entries: store.expiringSoon())
+            if let entry = displayedEntry {
+                EntryDetailView(
+                    store: store,
+                    initialEntry: entry,
+                    isNew: draftEntry != nil,
+                    onSaved: { saved in
+                        draftEntry = nil
+                        selectedEntryID = saved.id
+                    },
+                    onDeleted: {
+                        draftEntry = nil
+                        selectedEntryID = nil
+                    },
+                    onCancelNew: {
+                        draftEntry = nil
+                    }
+                )
+                .id(entry.id)
+            } else {
+                ContentUnavailableViewCompat()
             }
-            Text("Selectează o intrare din stânga, sau adaugă una nouă.")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .sheet(item: $editingEntry) { entry in
-            EntryEditorView(store: store, existing: entry)
+        .alert("Import eșuat", isPresented: $showImportError) {
+            Button("OK") {}
+        } message: {
+            Text(importErrorMessage)
         }
-        .sheet(isPresented: $showingNew) {
-            EntryEditorView(store: store, existing: nil)
+        .frame(minWidth: 900, minHeight: 560)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("GDC Vault").font(.title2).fontWeight(.bold)
+
+                Button {
+                    draftEntry = VaultEntry(name: "")
+                    selectedEntryID = nil
+                } label: {
+                    Label("Adaugă aplicație", systemImage: "plus.circle.fill")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                HStack(spacing: 8) {
+                    Button { exportVault() } label: {
+                        Label("Export", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    Button { importVault() } label: {
+                        Label("Import", systemImage: "square.and.arrow.down")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+
+                if !store.expiringSoon().isEmpty {
+                    ExpiringSoonBanner(entries: store.expiringSoon())
+                }
+            }
+            .padding(14)
+
+            Divider()
+
+            List(store.entries, selection: $selectedEntryID) { entry in
+                VaultRow(entry: entry).tag(entry.id)
+            }
+            .listStyle(.sidebar)
+            .onChange(of: selectedEntryID) {
+                // Selectarea altei intrari din lista anuleaza un draft
+                // neterminat — un singur "loc de lucru" la un moment dat.
+                if selectedEntryID != nil { draftEntry = nil }
+            }
         }
-        .frame(minWidth: 720, minHeight: 480)
+        .frame(minWidth: 260)
     }
 
     private func exportVault() {
@@ -118,18 +155,24 @@ private struct VaultRow: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name).font(.headline)
-                Text(entry.kind.displayName).font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    if entry.hasPassword { Image(systemName: "person.badge.key.fill").font(.caption2) }
+                    if entry.hasSerial { Image(systemName: "key.fill").font(.caption2) }
+                    if entry.licenseType != .none {
+                        Text(entry.licenseType.displayName).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
             Spacer()
             if let days = entry.daysUntilExpiry {
-                Text(days < 0 ? "Expirat" : "\(days) zile")
+                Text(days < 0 ? "Expirat" : "\(days)z")
                     .font(.caption)
                     .foregroundStyle(days < 0 ? .red : (days <= 14 ? .orange : .secondary))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
     }
 }
 
@@ -137,18 +180,33 @@ private struct ExpiringSoonBanner: View {
     let entries: [VaultEntry]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Label("Expiră curând", systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-                .font(.headline)
+                .font(.subheadline).fontWeight(.semibold)
             ForEach(entries) { entry in
                 Text("\(entry.name) — \(entry.daysUntilExpiry.map { $0 < 0 ? "expirat" : "\($0) zile" } ?? "")")
-                    .font(.subheadline)
+                    .font(.caption)
             }
         }
-        .padding()
-        .background(Color.orange.opacity(0.1))
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .padding()
+    }
+}
+
+/// `ContentUnavailableView` există doar din macOS 14 — proiectul țintește
+/// deja `.macOS(.v14)` (vezi Package.swift), dar un echivalent minimal
+/// scris de mână evită orice ambiguitate de disponibilitate pe build-uri
+/// mai vechi ale toolchain-ului.
+private struct ContentUnavailableViewCompat: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "shippingbox").font(.system(size: 40)).foregroundStyle(.secondary)
+            Text("Selectează o aplicație din stânga").foregroundStyle(.secondary)
+            Text("sau adaugă una nouă cu „Adaugă aplicație”").font(.caption).foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -3,6 +3,20 @@
 Aplicație standalone GDC: gestionare centralizată de licențe/abonamente/credențiale
 pentru creatori de conținut și editori video. ID produs oficial: `gdc-vault`.
 
+## Arhitectura fișei de produs (rescrisă 2026-08-24)
+
+Prima versiune avea `VaultEntryKind` (licență / abonament / credential) ca
+selector EXCLUSIV — Cristi a oprit testarea aici: un produs real (Adobe,
+Motion Array) are simultan cont de login ȘI cheie de serie ȘI expirare.
+**O intrare = un produs**, cu credențiale + licențiere + resurse pe
+ACEEAȘI fișă, simultan. `VaultEntry` nu mai are `kind`; are `licenseType`
+(`.none`/`.perpetual`/`.subscription`, informativ, NU exclude celelalte
+câmpuri), `hasPassword` și `hasSerial` (DOUĂ sloturi independente în
+Keychain — vezi `VaultKeychainStore.SecretSlot`). UI: `NavigationSplitView`
+cu sidebar stânga (butoane `Adaugă`/`Export`/`Import` vizibile direct,
+NU într-un meniu) + fișa completă în panoul de detaliu (nu sheet modal) —
+vezi `ContentView.swift` / `EntryDetailView.swift`.
+
 ## Structură
 
 - `Sources/GDCVaultCore/` — model + criptografie, fără UI:
