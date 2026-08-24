@@ -102,3 +102,23 @@ Repo-uri publice pe GitHub: `gordasgdc/gdc-vault-mac` + `gordasgdc/gdc-vault-win
 `/Applications` si semneaza cu certificatul local `CursorPro` al lui Cristi,
 inexistent pe runner) — impacheteaza manual, semnare ad-hoc (`--sign -`),
 doar artefact descarcabil + verificare independenta de mediu.
+
+## Licențiere (2026-08-24)
+
+Probă 15 zile + Lifetime 5€ (preț promoțional beta) — `LicenseManager.swift`,
+port 1:1 al celui din DataMover (`productID = "gdc-vault"`,
+`trialDurationDays = 15`). Activare: buton WhatsApp (`WhatsAppLink.swift`,
+mesaj prefilled cu ID-ul mașinii) → Cristi generează codul manual din
+Furnizor (`GenerateSerialView.swift`, `gdcStandaloneProducts` include acum
+`gdc-vault`) → codul se introduce în `ActivationSheet.swift`.
+
+**Decizie de produs, importantă**: spre deosebire de DataMover (unde
+`isUnlocked` blochează "Start"), la Vault NU se blochează accesul la
+intrările deja salvate după expirarea probei — doar `+ Adaugă aplicație`
+verifică `license.isUnlocked`. Un "seif" care te încuie afară de propriile
+parole ar fi ostil, nu de încredere.
+
+Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
+`apps`, cu copertă `docs/covers/gdc-vault.png`) — deci e vizibil în
+secțiunea Aplicații din GDC Plugin Manager, cu link către
+`gordas.dev/gdc-vault` (pagina de prezentare).
