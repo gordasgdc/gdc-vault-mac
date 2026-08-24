@@ -4,6 +4,14 @@ import GDCVaultCore
 
 /// Formular unic pentru toate cele 3 tipuri (`VaultEntryKind`) — campurile
 /// relevante apar/dispar dupa tipul ales, in loc de 3 ecrane separate.
+///
+/// PITFALL FIXED 2026-08-24: prima versiune folosea `Form` (nativ macOS,
+/// randat ca NSTableView) — Backspace/Delete in `SecureField` se pierdea
+/// mid-typing (caracterul gresit nu se putea sterge), si Salveaza parea
+/// "nefunctional". Restul aplicatiilor GDC (GenerateSerialView.swift,
+/// PublishAppView.swift) NU folosesc niciodata `Form` pe Mac, exact din
+/// acest motiv — folosesc `ScrollView` + `VStack` + `GroupBox` cu
+/// `.textFieldStyle(.roundedBorder)`. Aliniat aici la acelasi tipar.
 struct EntryEditorView: View {
     @ObservedObject var store: VaultMetadataStore
     @Environment(\.dismiss) private var dismiss
@@ -41,69 +49,88 @@ struct EntryEditorView: View {
     }
 
     var body: some View {
-        Form {
-            Picker("Tip", selection: $kind) {
-                ForEach(VaultEntryKind.allCases) { k in Text(k.displayName).tag(k) }
-            }
-            TextField("Nume (aplicație/plugin/site)", text: $name)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(isNew ? "Intrare nouă" : "Editează intrarea").font(.title2).fontWeight(.semibold)
 
-            Toggle("Are dată de expirare", isOn: $hasExpiry)
-            if hasExpiry {
-                DatePicker("Expiră la", selection: $expiresAt, displayedComponents: .date)
-            }
+                Picker("Tip", selection: $kind) {
+                    ForEach(VaultEntryKind.allCases) { k in Text(k.displayName).tag(k) }
+                }
+                .pickerStyle(.menu)
 
-            if kind == .credential {
-                TextField("URL login", text: $loginURL)
-                TextField("Utilizator", text: $username)
-                SecureField(isNew ? "Parolă" : "Parolă nouă (gol = nu o schimba)", text: $secret)
-            } else {
-                TextField("Link descărcare", text: $downloadURL)
-                TextField("Link actualizări (opțional)", text: $updateURL)
-                SecureField(isNew ? "Cheie de serie (opțional)" : "Cheie de serie nouă (gol = nu o schimba)", text: $secret)
-            }
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        TextField("Nume (aplicație/plugin/site)", text: $name).textFieldStyle(.roundedBorder)
 
-            TextField("Notițe", text: $notes, axis: .vertical)
-
-            Section("Atașamente (contracte, facturi, screenshot-uri)") {
-                ForEach(attachments) { attachment in
-                    HStack {
-                        Button(attachment.originalFileName) {
-                            NSWorkspace.shared.open(AttachmentStore.fileURL(for: attachment, entryID: entryID))
+                        Toggle("Are dată de expirare", isOn: $hasExpiry)
+                        if hasExpiry {
+                            DatePicker("Expiră la", selection: $expiresAt, displayedComponents: .date)
                         }
-                        .buttonStyle(.link)
-                        Spacer()
+
+                        if kind == .credential {
+                            TextField("URL login", text: $loginURL).textFieldStyle(.roundedBorder)
+                            TextField("Utilizator", text: $username).textFieldStyle(.roundedBorder)
+                            SecureField(isNew ? "Parolă" : "Parolă nouă (gol = nu o schimba)", text: $secret)
+                                .textFieldStyle(.roundedBorder)
+                        } else {
+                            TextField("Link descărcare", text: $downloadURL).textFieldStyle(.roundedBorder)
+                            TextField("Link actualizări (opțional)", text: $updateURL).textFieldStyle(.roundedBorder)
+                            SecureField(isNew ? "Cheie de serie (opțional)" : "Cheie de serie nouă (gol = nu o schimba)", text: $secret)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        TextField("Notițe", text: $notes, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(3...6)
+                    }
+                    .padding(8)
+                }
+
+                GroupBox("Atașamente (contracte, facturi, screenshot-uri)") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(attachments) { attachment in
+                            HStack {
+                                Button(attachment.originalFileName) {
+                                    NSWorkspace.shared.open(AttachmentStore.fileURL(for: attachment, entryID: entryID))
+                                }
+                                .buttonStyle(.link)
+                                Spacer()
+                                Button {
+                                    AttachmentStore.remove(attachment, entryID: entryID)
+                                    attachments.removeAll { $0.id == attachment.id }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                         Button {
-                            AttachmentStore.remove(attachment, entryID: entryID)
-                            attachments.removeAll { $0.id == attachment.id }
+                            addAttachment()
                         } label: {
-                            Image(systemName: "trash")
+                            Label("Adaugă fișier…", systemImage: "paperclip")
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Button {
-                    addAttachment()
-                } label: {
-                    Label("Adaugă fișier…", systemImage: "paperclip")
-                }
-            }
 
-            HStack {
-                if !isNew {
-                    Button("Șterge", role: .destructive) {
-                        store.delete(VaultEntry(id: entryID, kind: kind, name: name))
-                        dismiss()
+                HStack {
+                    if !isNew {
+                        Button("Șterge", role: .destructive) {
+                            store.delete(VaultEntry(id: entryID, kind: kind, name: name))
+                            dismiss()
+                        }
                     }
+                    Spacer()
+                    Button("Anulează") { dismiss() }
+                    Button("Salvează") { save() }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                Spacer()
-                Button("Anulează") { dismiss() }
-                Button("Salvează") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
+            .padding(24)
         }
-        .padding()
-        .frame(width: 420)
+        .frame(width: 460, height: 560)
     }
 
     private func save() {

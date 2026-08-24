@@ -56,11 +56,26 @@ Aici: `uninstall.sh` șterge `.app`-ul, `~/Library/Application Support/GDC Vault
 **Dacă adaugi vreodată o setare persistentă nouă (UserDefaults, cache,
 fișier), adaug-o și în `uninstall.sh` în ACELAȘI commit.**
 
+## Iconiță (`AppIcon.icns` / favicon)
+
+Generată programatic (Pillow, `/tmp/gen_vault_icon.py` — nu e comisă, doar
+rezultatul): seif stilizat (cerc dublu + gaură de cheie), ardezie închisă
+(`#1e293b`→`#0a0e17`) cu accent neon cyan/violet, în stilul deja consacrat
+în ecosistemul GDC. Master la 1024×1024 în `Assets/icon-1024-master.png`.
+`AppIcon.iconset/` + `AppIcon.icns` generate din el via `sips`/`iconutil`
+(exact tiparul din `gdc-plugin-manager-catalog-vendor`). Favicon-uri web
+(`.ico`/.png la 16/32px, aceeași convenție ca `docs/index.html` din
+catalog-vendor) în `Assets/web/`. **Dacă iconița se redesenează vreodată,
+regenerează din același script și rulează din nou `sips`+`iconutil` — nu
+edita direct `.icns`.**
+
 ## Rebuild local
 
 ```bash
-cd ~/Downloads/gdc-vault-mac && swift build
+cd ~/Downloads/gdc-vault-mac && bash build_app.sh
 ```
 
-(Nu există încă `build_app.sh`/instalator — proiectul e la stadiul de scaffold,
-rulat direct din `.build/debug/GDCVault` sau din Xcode.)
+Compilează release, împachetează `GDC Vault.app` (cu `AppIcon.icns`),
+semnează cu certificatul local `CursorPro` și instalează în
+`/Applications/GDC Vault.app` — exact tiparul din `build_app.sh` al
+`GDCPluginManager`, minus bundle-ul Python (nefolosit aici).
