@@ -1,0 +1,54 @@
+TERMENI ȘI CONDIȚII — GDC Vault
+Ultima actualizare: 26 august 2026
+
+1. LICENȚA
+GDC Vault ("Aplicația") este dezvoltată de Cristi Gordas ("GDC",
+"Dezvoltatorul"). Prin instalarea și utilizarea Aplicației, accepți acești
+termeni.
+
+Îți este acordată o licență personală, netransmisibilă, de a instala și
+folosi Aplicația pe calculatoarele tale, pentru uz propriu sau profesional.
+
+2. PERIOADA DE PROBĂ
+Aplicația oferă o perioadă de probă gratuită de 15 zile de la prima
+pornire, cu acces complet la funcționalități. După expirarea perioadei de
+probă, poți în continuare vizualiza și exporta datele existente, dar
+adăugarea de intrări noi necesită o licență activă.
+
+3. ACHIZIȚIONAREA UNEI LICENȚE
+O licență Lifetime se poate achiziționa printr-o donație unică (5€,
+preț promoțional de lansare), contactând Dezvoltatorul prin WhatsApp
+(detalii în aplicație, ecranul de Activare). Codul de licență primit este
+personal — nu-l distribui public.
+
+4. FĂRĂ GARANȚIE
+Aplicația este oferită "ca atare", fără nicio garanție explicită sau
+implicită. Dezvoltatorul nu este responsabil pentru pierderi directe sau
+indirecte rezultate din utilizarea sau imposibilitatea utilizării
+Aplicației.
+
+5. STOCAREA DATELOR
+Parolele și cheile de serie introduse de tine sunt stocate exclusiv local,
+în Keychain-ul sistemului (Mac) — niciodată în clar pe disc și niciodată
+transmise către niciun server. Metadatele (nume produs, note, atașamente)
+sunt stocate local, pe calculatorul tău.
+
+6. FĂRĂ COLECTARE DE DATE
+Aplicația nu colectează date personale, nu trimite telemetrie și nu are
+conexiune la niciun server, cu o singură excepție: verificarea manuală de
+actualizări, care interoghează o singură dată numărul ultimei versiuni
+disponibile pe GitHub (fără a trimite nicio informație despre tine sau
+calculatorul tău).
+
+7. RAMBURSĂRI
+Dacă ai o problemă cu achiziția, contactează Dezvoltatorul direct prin
+WhatsApp — vezi ecranul de Activare din aplicație pentru detalii de
+contact.
+
+8. MODIFICĂRI
+Acești termeni pot fi actualizați odată cu versiuni viitoare ale
+Aplicației. Continuarea folosirii Aplicației după o actualizare
+înseamnă acceptarea noilor termeni.
+
+Prin bifarea căsuței de acceptare din acest instalator, confirmi că ai
+citit și ești de acord cu acești termeni.
