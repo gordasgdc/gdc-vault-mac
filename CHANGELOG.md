@@ -1,5 +1,20 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.2.2 (2026-08-26)
+**Completare obligatorie, Directivă Permanentă Supremă — lipsea complet:**
+- **Versiune vizibilă în UI**: `v0.2.2` afișat acum în footer-ul sidebar-ului
+  (mereu vizibil, nu doar în meniul About) + în panoul standard About
+  (Cmd+meniu → Despre GDC Vault).
+- **Update checker cu pop-up**: verificare automată la lansare
+  (`UpdateChecker.checkSilentlyOnLaunch`, comparație cu ultimul tag GitHub)
+  — dacă există o versiune nouă, apare un `.alert` SwiftUI (pop-up real,
+  nu doar banner) cu buton „Descarcă" → deschide pagina de releases.
+  Dismissal per-versiune (`gdcvault_dismissed_update_version`, UserDefaults) —
+  nu reapare la fiecare pornire odată respins. Plus verificare manuală
+  („Caută actualizări" — buton în sidebar ȘI în meniu).
+- Niciuna din cele două nu exista înainte de acest release — găsit la
+  verificare explicită, nu presupus conform.
+
 ## v0.2.1 (2026-08-26)
 **Doar Mac** — audit critic, aliniere la Directiva Permanentă Supremă:
 - **Fix real de semnare**: aplicația era semnată DOAR ad-hoc

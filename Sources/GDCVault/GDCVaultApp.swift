@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct GDCVaultApp: App {
@@ -7,5 +8,21 @@ struct GDCVaultApp: App {
             ContentView()
         }
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("Despre GDC Vault") { showAboutPanel() }
+            }
+            CommandGroup(after: .appInfo) {
+                Button("Caută actualizări…") { UpdateChecker.checkAndShowAlert() }
+            }
+        }
+    }
+
+    private func showAboutPanel() {
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: "GDC Vault",
+            .applicationVersion: UpdateChecker.currentVersion,
+            .credits: NSAttributedString(string: "© \(Calendar.current.component(.year, from: Date())) GDC. Toate drepturile rezervate."),
+        ])
     }
 }
