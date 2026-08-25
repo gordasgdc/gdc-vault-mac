@@ -21,6 +21,18 @@ struct ContentView: View {
     @State private var showImportError = false
     @State private var importErrorMessage = ""
 
+    /// Pop-up automat, o singura data per versiune noua (vezi
+    /// UpdateChecker.checkSilentlyOnLaunch) - in plus fata de butonul
+    /// manual din meniu ("Caută actualizări…"), ca cerinta "Directivei
+    /// Permanente Supreme" (verificator + notificare vizibila) sa fie
+    /// indeplinita chiar daca userul nu deschide niciodata meniul.
+    @State private var showUpdateAlert = false
+    @State private var updateAlertVersion = ""
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+    }
+
     private var displayedEntry: VaultEntry? {
         if let draftEntry { return draftEntry }
         guard let selectedEntryID else { return nil }
@@ -36,6 +48,23 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showActivation) {
             ActivationSheet(license: license, isPresented: $showActivation)
+        }
+        .alert("Este disponibilă o versiune nouă", isPresented: $showUpdateAlert) {
+            Button("Descarcă") {
+                NSWorkspace.shared.open(URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest")!)
+                UpdateChecker.markDismissed(updateAlertVersion)
+            }
+            Button("Mai târziu", role: .cancel) {
+                UpdateChecker.markDismissed(updateAlertVersion)
+            }
+        } message: {
+            Text("GDC Vault \(updateAlertVersion) este disponibil (tu ai \(appVersion)). Te rugăm să descarci ultimul installer și să îl instalezi peste versiunea actuală.")
+        }
+        .onAppear {
+            UpdateChecker.checkSilentlyOnLaunch { newVersion in
+                updateAlertVersion = newVersion
+                showUpdateAlert = true
+            }
         }
     }
 
@@ -139,8 +168,29 @@ struct ContentView: View {
                 // neterminat — un singur "loc de lucru" la un moment dat.
                 if selectedEntryID != nil { draftEntry = nil }
             }
+
+            Divider()
+            versionFooter
         }
         .frame(minWidth: 260)
+    }
+
+    /// Versiune mereu vizibilă în UI (nu doar în meniul About) + acces
+    /// direct la verificarea de actualizări, fără să treci prin meniu —
+    /// cerință explicită, Directiva Permanentă Supremă.
+    private var versionFooter: some View {
+        HStack {
+            Text("v\(appVersion)")
+                .font(.system(size: 10.5, design: .monospaced))
+                .foregroundStyle(.tertiary)
+            Spacer()
+            Button("Caută actualizări") { UpdateChecker.checkAndShowAlert() }
+                .buttonStyle(.plain)
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
     }
 
     private func exportVault() {
