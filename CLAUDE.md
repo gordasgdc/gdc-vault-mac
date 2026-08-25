@@ -86,22 +86,71 @@ edita direct `.icns`.**
 ## Rebuild local
 
 ```bash
-cd ~/Downloads/gdc-vault-mac && bash build_app.sh
+cd ~/Developer/GDCVault && bash build_app.sh
 ```
 
 Compilează release, împachetează `GDC Vault.app` (cu `AppIcon.icns`),
-semnează cu certificatul local `CursorPro` și instalează în
-`/Applications/GDC Vault.app` — exact tiparul din `build_app.sh` al
-`GDCPluginManager`, minus bundle-ul Python (nefolosit aici).
+semnează cu Developer ID Application (dacă `APPLE_SIGN_IDENTITY_APP` e
+setat în `~/.zshrc`) și instalează în `/Applications/GDC Vault.app`.
 
-## CI/CD (2026-08-24)
+Pentru pachetul complet de release (`.pkg` semnat+notarizat+stapled +
+`GDCVault-Mac.zip`):
+
+```bash
+cd ~/Developer/GDCVault && bash build_installer.sh
+```
+
+## CI/CD (2026-08-24, actualizat 2026-08-26)
 
 Repo-uri publice pe GitHub: `gordasgdc/gdc-vault-mac` + `gordasgdc/gdc-vault-win`.
 `.github/workflows/build-mac.yml` — ruleaza pe `macos-latest` la orice push pe
-`main`. **NU reutilizeaza `build_app.sh`** (acela instaleaza direct in
-`/Applications` si semneaza cu certificatul local `CursorPro` al lui Cristi,
-inexistent pe runner) — impacheteaza manual, semnare ad-hoc (`--sign -`),
-doar artefact descarcabil + verificare independenta de mediu.
+`main`, artefact ad-hoc doar pentru verificare independenta de mediu (**NU**
+e sursa pachetului de release — acela se construieste LOCAL, cu certificatul
+real din Keychain, vezi mai jos).
+
+## REGULĂ PERMANENTĂ: Locația proiectului pe disc (2026-08-26)
+Acest repo trăiește în **`~/Developer/GDCVault`**, NU în `~/Downloads`
+(unde a stat inițial — mutat la auditul din 2026-08-26). Motiv: vezi
+`~/Developer/GDCPluginManager/PROJECT_STRUCTURE.md`. Windows: `~/Developer/GDCVaultWin`.
+
+## AUDIT 2026-08-26 — găsit și reparat (Directivă Permanentă Supremă)
+Raportat de Cristi: la descărcare apărea un folder cu `Instaleaza_GDC_Vault.command`
++ hack Gatekeeper (`xattr -dr com.apple.quarantine`), deși se credea aplicația
+deja semnată Apple. **Descoperire reală, nu doar cosmetică**: aplicația era
+semnată DOAR ad-hoc (`codesign -dv` pe zip-ul livrat anterior arăta
+`flags=0x2(adhoc)`, `TeamIdentifier=not set`) — hack-ul exista tocmai pentru
+că Gatekeeper ar fi blocat instalarea fără el, nu era doar "neprofesionist".
+
+Fix real (nu doar eliminarea scriptului):
+- `codesigning/` copiat din `CursorPro` (identic — `sign-and-notarize.sh`,
+  `entitlements.plist`, `ci-import-certs.sh`, `README.md`).
+- `build_app.sh` semnează acum cu Developer ID Application (fallback ad-hoc
+  doar dacă `APPLE_SIGN_IDENTITY_APP` nu e setat, pentru build-uri de test).
+- `build_installer.sh` (NOU) — `pkgbuild`+`productbuild`+semnare Developer
+  ID Installer+notarizare+staple, produce `GDCVault.pkg` + `GDCVault-Mac.zip`
+  (3 fișiere la rădăcină: pkg, `Dezinstalare_GDCVault.command`,
+  `Instructiuni_Utilizare.pdf`). Verificat local: `pkgutil --check-signature`
+  → "signed by a developer certificate issued by Apple for distribution",
+  "Notarization: trusted by the Apple notary service".
+- `Instaleaza_GDC_Vault.command` (hack Gatekeeper) ȘI `uninstall.sh` (vechi,
+  neconform ca nume) — ȘTERSE, înlocuite de `Dezinstalare_GDCVault.command`
+  (nou, port 1:1 din CursorPro, plus buclă de ștergere Keychain pentru
+  service `com.gordas.gdcvault`).
+- `installer/scripts/preinstall` (NOU) — pkill + rm -rf pe instalarea veche,
+  cablat via `pkgbuild --scripts`, NIMIC legat de Gatekeeper/quarantine.
+- `installer/License.txt` (NOU) — Terms & Conditions pentru panoul de
+  licență din installer (productbuild).
+- **Ghid PDF multilingv** (`installer/Instructiuni_Utilizare.pdf`, RO/EN/ES,
+  3 pagini) — generat cu `installer/generate_pdf.py` (reportlab + font Arial
+  TTF, NU fonturile standard-14 PDF — WinAnsiEncoding nu are glyph-uri
+  pentru ș/ț românești, ies ca pătrate goale fără font TTF embedat).
+  Regenerare: `pip install reportlab pypdf && python3 installer/generate_pdf.py`.
+- **Site** (`~/Developer/GDCPluginManager/docs/gdc-vault/index.html`) —
+  adăugat switch de limbă RO/EN/ES (pattern `data-i18n` identic cu situl
+  principal `docs/index.html`), secțiune nouă "Instalare pe Mac" cu pașii
+  corecți (`.pkg` direct, fără launcher), verificat cu `node --check` pe
+  scriptul extras înainte de commit (regulă din incidentul JS-crash al
+  sitului principal, 2026-08-25 — vezi `GDCPluginManager/CHANGELOG.md`).
 
 ## Licențiere (2026-08-24)
 

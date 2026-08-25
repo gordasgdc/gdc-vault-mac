@@ -17,12 +17,15 @@ cp .build/release/GDCVault "$BUILD_OUT/Contents/MacOS/GDCVault"
 cp Info.plist "$BUILD_OUT/Contents/Info.plist"
 cp AppIcon.icns "$BUILD_OUT/Contents/Resources/AppIcon.icns"
 
-# Acelasi certificat local de incredere folosit pe toate aplicatiile GDC
-# din aceasta sesiune - nicio permisiune TCC-gated nu e necesara aici,
-# dar o identitate stabila evita frictiunea Gatekeeper "unknown developer"
-# la fiecare rebuild.
-SIGN_IDENTITY="CursorPro"
-codesign --force --deep --sign "$SIGN_IDENTITY" "$BUILD_OUT"
+# Semnare cu Developer ID Application (certificat Apple real) daca e
+# configurat - vezi codesigning/README.md - altfel fallback ad-hoc, ca
+# rebuild-urile locale de dezvoltare sa functioneze si fara certificat.
+if [ -n "${APPLE_SIGN_IDENTITY_APP:-}" ]; then
+    ./codesigning/sign-and-notarize.sh app "$BUILD_OUT"
+else
+    echo "AVERTISMENT: APPLE_SIGN_IDENTITY_APP nesetat - semnez ad-hoc (doar pentru test local)."
+    codesign --force --deep --sign - "$BUILD_OUT"
+fi
 
 INSTALLED="/Applications/GDC Vault.app"
 if [ -d "$INSTALLED" ]; then
