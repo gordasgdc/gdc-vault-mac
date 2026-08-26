@@ -35,5 +35,6 @@ jobs:
       - name: Salveaza .app ca artefact descarcabil
         uses: actions/upload-artifact@v4
         with:
+          retention-days: 1
           name: GDCVault-Mac-build
           path: dist/GDC Vault.app
