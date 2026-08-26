@@ -348,3 +348,12 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 `apps`, cu copertă `docs/covers/gdc-vault.png`) — deci e vizibil în
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
+
+## Etapa finală (2026-08-26) — Profil/HWID sidebar + Sistem de Revocare Licențe
+Port 1:1 din GDC Plugin Manager (vezi CLAUDE.md Partea 1, Regula 12):
+`SupabaseConfig.swift`/`RevocationCheck.swift` (GDCVaultCore, noi —
+infrastructura Supabase lipsea complet), `AnalyticsClient.swift`,
+`UserProfileStore.swift`/`ProfileSidebarBlock.swift` (Nume/Email/Machine
+ID în sidebar, sub lista de intrări). `LicenseManager.isUnlocked`
+consultă acum și starea de revocare (fail-open). Aceeași migrare SQL
+(`is_license_revoked` RPC) ca GDC Plugin Manager — niciun tabel nou.
