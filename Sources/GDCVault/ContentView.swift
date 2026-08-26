@@ -65,6 +65,7 @@ struct ContentView: View {
                 updateAlertVersion = newVersion
                 showUpdateAlert = true
             }
+            Task { await license.refreshRevocation() }
         }
     }
 
@@ -169,6 +170,8 @@ struct ContentView: View {
                 if selectedEntryID != nil { draftEntry = nil }
             }
 
+            Divider()
+            ProfileSidebarBlock()
             Divider()
             versionFooter
         }

@@ -54,7 +54,15 @@ public final class LicenseManager: ObservableObject {
 
     /// Verificat inainte de a permite crearea unei intrari NOI (nu si
     /// vizualizarea/editarea celor existente — vezi nota de arhitectura).
-    public var isUnlocked: Bool { isLicensed || isTrialActive }
+    public var isUnlocked: Bool {
+        (isLicensed && !RevocationCheck.shared.isRevoked(Self.productID)) || isTrialActive
+    }
+
+    /// Reverifica revocarea online (fail-open, vezi RevocationCheck.swift)
+    /// — apelata la lansare, niciodata sincron/blocanta pentru UI.
+    public func refreshRevocation() async {
+        await RevocationCheck.shared.refresh(productIDs: [Self.productID])
+    }
 
     @discardableResult
     public func activate(code: String) -> Bool {
@@ -64,6 +72,7 @@ public final class LicenseManager: ObservableObject {
         case .success(let payload):
             saveLicense(code: trimmed)
             applyLicense(payload: payload)
+            Task { await RevocationCheck.shared.refresh(productIDs: [Self.productID]) }
             return true
         case .failure(let error):
             activationError = Self.message(for: error)
