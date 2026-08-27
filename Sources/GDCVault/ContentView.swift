@@ -36,6 +36,7 @@ struct ContentView: View {
     /// indeplinita chiar daca userul nu deschide niciodata meniul.
     @State private var showUpdateAlert = false
     @State private var updateAlertVersion = ""
+    @State private var updateAlertPkgURL: URL?
 
     /// Setări (temă + Ghid PDF) — vezi SettingsView.swift, 2026-08-27.
     @State private var showSettings = false
@@ -64,22 +65,26 @@ struct ContentView: View {
             SettingsView()
         }
         .alert("Este disponibilă o versiune nouă", isPresented: $showUpdateAlert) {
-            Button("Descarcă") {
-                // BUG FIX 2026-08-27: link direct spre asset (declanseaza
-                // descarcarea), nu pagina release-ului - vezi
-                // UpdateChecker.swift pentru acelasi fix pe verificarea manuala.
-                NSWorkspace.shared.open(URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest/download/GDCVault-Mac.zip")!)
+            // BUG FIX 2026-08-27 (raportat de Cristi: "ma trimite la
+            // GitHub... clientul niciodata nu trebuie sa vada GitHub"):
+            // descarca + instaleaza automat, fara browser - vezi
+            // SelfUpdater.swift.
+            Button("Actualizează acum") {
                 UpdateChecker.markDismissed(updateAlertVersion)
+                if let pkgURL = updateAlertPkgURL {
+                    Task { await SelfUpdater.downloadAndInstall(pkgURL: pkgURL, version: updateAlertVersion) }
+                }
             }
             Button("Mai târziu", role: .cancel) {
                 UpdateChecker.markDismissed(updateAlertVersion)
             }
         } message: {
-            Text("GDC Vault \(updateAlertVersion) este disponibil (tu ai \(appVersion)). Te rugăm să descarci ultimul installer și să îl instalezi peste versiunea actuală.")
+            Text("GDC Vault \(updateAlertVersion) este disponibil (tu ai \(appVersion)). Apasă „Actualizează acum” pentru a descărca și instala automat.")
         }
         .onAppear {
-            UpdateChecker.checkSilentlyOnLaunch { newVersion in
+            UpdateChecker.checkSilentlyOnLaunch { newVersion, pkgURL in
                 updateAlertVersion = newVersion
+                updateAlertPkgURL = pkgURL
                 showUpdateAlert = true
             }
             Task { await license.refreshRevocation() }

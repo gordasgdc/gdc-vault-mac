@@ -1,19 +1,22 @@
 import AppKit
 
-/// "Check for Updates" manual — compara versiunea rulata cu ultimul tag de
-/// pe GitHub Releases si ofera un link direct de download daca e mai noua.
-/// Port 1:1 al UpdateChecker.swift din DataMover/CursorPro. Nu e
-/// updater silentios/automat (ar avea nevoie de un helper separat care
-/// inlocuieste bundle-ul dupa iesirea aplicatiei) - e varianta simpla,
-/// fara infrastructura suplimentara: doar anunta si trimite spre pagina
-/// de descarcare.
+/// "Check for Updates" — compara versiunea rulata cu ultimul tag de pe
+/// GitHub Releases si descarca+instaleaza automat noua versiune, FARA sa
+/// mai treaca prin browser/pagina de GitHub.
+///
+/// BUG FIX 2026-08-27 (raportat de Cristi, pe Mac ȘI Windows: "ma trimite
+/// la GitHub... clientul niciodata nu trebuie sa vada GitHub"): un fix
+/// anterior din aceeasi zi doar înlocuise link-ul paginii cu link-ul
+/// DIRECT al asset-ului (`releases/latest/download/...`) — tot deschidea
+/// browserul, doar descarca fisierul in loc sa arate pagina. Nu era
+/// suficient. Fix REAL: port 1:1 al `SelfUpdater.swift` din DataMover/
+/// GDCPluginManager (vezi CLAUDE.md Partea 1) — descarca .pkg-ul cu
+/// URLSession, apoi il instaleaza prin promptul NATIV de parola admin
+/// macOS (`osascript ... with administrator privileges`), fara Terminal,
+/// fara browser, fara pas manual in afara ferestrei de parola sistem.
 enum UpdateChecker {
     private static let latestReleaseAPIURL = URL(string: "https://api.github.com/repos/gordasgdc/gdc-vault-mac/releases/latest")!
     private static let releasesPageURL = URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest")!
-    /// BUG FIX 2026-08-27 (raportat de Cristi pe Windows, aceeasi problema
-    /// exista si aici): link direct spre asset-ul stabil, nu pagina
-    /// release-ului - deschiderea lui DECLANSEAZA descarcarea fisierului.
-    private static let directDownloadURL = URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest/download/GDCVault-Mac.zip")!
 
     static var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
@@ -24,12 +27,12 @@ enum UpdateChecker {
     /// confirma - vezi checkAndShowAlert). Foloseste acelasi dismissal
     /// per-versiune ca restul ecosistemului GDC, ca un update deja vazut
     /// sa nu reapara la fiecare pornire.
-    static func checkSilentlyOnLaunch(onNewVersion: @escaping (String) -> Void) {
+    static func checkSilentlyOnLaunch(onNewVersion: @escaping (String, URL) -> Void) {
         Task {
-            if case .newVersion(let version) = await fetchLatestTag() {
+            if case .newVersion(let version, let pkgURL) = await fetchLatestTag() {
                 let dismissedKey = "gdcvault_dismissed_update_version"
                 if UserDefaults.standard.string(forKey: dismissedKey) == version { return }
-                await MainActor.run { onNewVersion(version) }
+                await MainActor.run { onNewVersion(version, pkgURL) }
             }
         }
     }
@@ -47,7 +50,7 @@ enum UpdateChecker {
 
     private enum Result {
         case upToDate
-        case newVersion(String)
+        case newVersion(String, URL)
         case error
     }
 
@@ -62,10 +65,19 @@ enum UpdateChecker {
                 return .error
             }
             let latest = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-            if isVersion(latest, newerThan: currentVersion) {
-                return .newVersion(latest)
+            guard isVersion(latest, newerThan: currentVersion) else { return .upToDate }
+
+            // Asset-ul .pkg cu nume STABIL ("GDCVault.pkg") publicat de
+            // build_installer.sh la fiecare release - vezi Regula 17
+            // (excepția numelui stabil, necesară pentru acest mecanism).
+            let assets = json["assets"] as? [[String: Any]] ?? []
+            let pkgAsset = assets.first { ($0["name"] as? String) == "GDCVault.pkg" }
+            guard let urlString = pkgAsset?["browser_download_url"] as? String, let pkgURL = URL(string: urlString) else {
+                // Release fara asset .pkg (ex. doar zip) - fallback la pagina,
+                // mai bine decat sa esueze silentios.
+                return .newVersion(latest, releasesPageURL)
             }
-            return .upToDate
+            return .newVersion(latest, pkgURL)
         } catch {
             return .error
         }
@@ -90,15 +102,16 @@ enum UpdateChecker {
             alert.informativeText = "Rulezi deja ultima versiune (\(currentVersion))."
             alert.addButton(withTitle: "OK")
             alert.runModal()
-        case .newVersion(let version):
+        case .newVersion(let version, let pkgURL):
             alert.messageText = "Este disponibilă o versiune nouă"
-            alert.informativeText = "GDC Vault \(version) este disponibil (tu ai \(currentVersion)). Te rugăm să descarci ultimul installer și să îl instalezi peste versiunea actuală."
-            alert.addButton(withTitle: "Descarcă")
+            alert.informativeText = "GDC Vault \(version) este disponibil (tu ai \(currentVersion)). Apasă „Actualizează acum” pentru a descărca și instala automat."
+            alert.addButton(withTitle: "Actualizează acum")
             alert.addButton(withTitle: "Mai târziu")
-            if alert.runModal() == .alertFirstButtonReturn {
-                NSWorkspace.shared.open(directDownloadURL)
-            }
+            let response = alert.runModal()
             markDismissed(version)
+            if response == .alertFirstButtonReturn {
+                Task { await SelfUpdater.downloadAndInstall(pkgURL: pkgURL, version: version) }
+            }
         case .error:
             alert.messageText = "Verificarea a eșuat"
             alert.informativeText = "Nu am putut verifica dacă există o versiune nouă. Verifică-ți conexiunea la internet și încearcă din nou."
