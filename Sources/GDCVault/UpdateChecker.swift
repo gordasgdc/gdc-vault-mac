@@ -10,6 +10,10 @@ import AppKit
 enum UpdateChecker {
     private static let latestReleaseAPIURL = URL(string: "https://api.github.com/repos/gordasgdc/gdc-vault-mac/releases/latest")!
     private static let releasesPageURL = URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest")!
+    /// BUG FIX 2026-08-27 (raportat de Cristi pe Windows, aceeasi problema
+    /// exista si aici): link direct spre asset-ul stabil, nu pagina
+    /// release-ului - deschiderea lui DECLANSEAZA descarcarea fisierului.
+    private static let directDownloadURL = URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest/download/GDCVault-Mac.zip")!
 
     static var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
@@ -92,7 +96,7 @@ enum UpdateChecker {
             alert.addButton(withTitle: "Descarcă")
             alert.addButton(withTitle: "Mai târziu")
             if alert.runModal() == .alertFirstButtonReturn {
-                NSWorkspace.shared.open(releasesPageURL)
+                NSWorkspace.shared.open(directDownloadURL)
             }
             markDismissed(version)
         case .error:
