@@ -65,7 +65,10 @@ struct ContentView: View {
         }
         .alert("Este disponibilă o versiune nouă", isPresented: $showUpdateAlert) {
             Button("Descarcă") {
-                NSWorkspace.shared.open(URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest")!)
+                // BUG FIX 2026-08-27: link direct spre asset (declanseaza
+                // descarcarea), nu pagina release-ului - vezi
+                // UpdateChecker.swift pentru acelasi fix pe verificarea manuala.
+                NSWorkspace.shared.open(URL(string: "https://github.com/gordasgdc/gdc-vault-mac/releases/latest/download/GDCVault-Mac.zip")!)
                 UpdateChecker.markDismissed(updateAlertVersion)
             }
             Button("Mai târziu", role: .cancel) {

@@ -509,6 +509,14 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
 
+## Bug real 2026-08-27 (d) — "Descarcă" din popup-ul de update deschidea pagina GitHub, nu descărca
+Găsit pe Windows de Cristi (aceeași cauză exista identic aici) — butonul
+"Descarcă" din alerta de update ȘI din `checkAndShowAlert()` deschideau
+`releases/latest` (pagina web), nu asset-ul direct. Fix: ambele acum
+deschid `releases/latest/download/GDCVault-Mac.zip` — declanșează
+descărcarea fișierului direct, fără pas intermediar pe GitHub. Versiune →
+`0.5.1` (PATCH).
+
 ## Etapa 2026-08-27 (c) — Conturi multiple, Temă Light/Dark, Setări, Help PDF
 Feedback direct Cristi după primul test: (1) **Conturi/departamente
 multiple** — `LoginCredential` (nou, VaultEntry.swift) + listă
