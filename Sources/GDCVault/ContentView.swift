@@ -171,7 +171,7 @@ struct ContentView: View {
             }
 
             Divider()
-            ProfileSidebarBlock()
+            ProfileSidebarBlock(onActivateTapped: { showActivation = true })
             Divider()
             versionFooter
         }
