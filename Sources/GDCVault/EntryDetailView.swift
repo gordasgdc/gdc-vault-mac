@@ -12,6 +12,17 @@ import GDCVaultCore
 /// `ScrollView` + `VStack` + `GroupBox`, NICIODATĂ `Form` pe Mac — vezi
 /// pitfall-ul documentat în istoricul acestui fișier (Backspace/Salvează
 /// "moarte" într-un `Form`).
+/// Stare UI locală per cont suplimentar — parola e citită/scrisă direct
+/// din Keychain (vezi VaultKeychainStore.*CredentialSecret), nu ține de
+/// LoginCredential (care are doar `hasPassword: Bool`, fără secret).
+private struct CredentialRow: Identifiable {
+    var id: UUID
+    var label: String
+    var loginURL: String
+    var username: String
+    var password: String
+}
+
 struct EntryDetailView: View {
     @ObservedObject var store: VaultMetadataStore
     let isNew: Bool
@@ -32,6 +43,8 @@ struct EntryDetailView: View {
     @State private var notes: String
     @State private var attachments: [AttachmentRef]
     @State private var purchasedAssets: [PurchasedAsset]
+    @State private var additionalLogins: [CredentialRow]
+    private let originalCredentialIDs: Set<UUID>
 
     private let entryID: UUID
 
@@ -55,6 +68,19 @@ struct EntryDetailView: View {
         _notes = State(initialValue: initialEntry.notes ?? "")
         _attachments = State(initialValue: initialEntry.attachments)
         _purchasedAssets = State(initialValue: initialEntry.purchasedAssets)
+
+        let entryID = initialEntry.id
+        _additionalLogins = State(initialValue: initialEntry.additionalLogins.map { cred in
+            CredentialRow(
+                id: cred.id,
+                label: cred.label,
+                loginURL: cred.loginURL ?? "",
+                username: cred.username ?? "",
+                password: cred.hasPassword
+                    ? ((try? VaultKeychainStore.readCredentialSecret(forEntryID: entryID, credentialID: cred.id)) ?? "") : ""
+            )
+        })
+        originalCredentialIDs = Set(initialEntry.additionalLogins.map(\.id))
 
         // PITFALL FIXED 2026-08-24 (bug critic de UX raportat de Cristi):
         // campurile de parola/serie erau write-only ("gol = nu schimba"),
@@ -80,6 +106,35 @@ struct EntryDetailView: View {
                         TextField("URL login", text: $loginURL).textFieldStyle(.roundedBorder)
                         TextField("Utilizator", text: $username).textFieldStyle(.roundedBorder)
                         SecretField(placeholder: "Parolă", value: $password)
+
+                        if !additionalLogins.isEmpty {
+                            Divider().padding(.vertical, 2)
+                        }
+                        ForEach($additionalLogins) { $login in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    TextField("Etichetă (ex. Departament Video)", text: $login.label)
+                                        .textFieldStyle(.roundedBorder)
+                                    Button {
+                                        additionalLogins.removeAll { $0.id == login.id }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                TextField("URL login", text: $login.loginURL).textFieldStyle(.roundedBorder)
+                                TextField("Utilizator", text: $login.username).textFieldStyle(.roundedBorder)
+                                SecretField(placeholder: "Parolă", value: $login.password)
+                            }
+                            .padding(8)
+                            .background(Color.secondary.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        Button {
+                            additionalLogins.append(CredentialRow(id: UUID(), label: "", loginURL: "", username: "", password: ""))
+                        } label: {
+                            Label("Adaugă alt cont/departament", systemImage: "plus.circle")
+                        }
                     }
                     .padding(8)
                 }
@@ -233,7 +288,16 @@ struct EntryDetailView: View {
             updateURL: updateURL.isEmpty ? nil : updateURL,
             notes: notes.isEmpty ? nil : notes,
             attachments: attachments,
-            purchasedAssets: purchasedAssets
+            purchasedAssets: purchasedAssets,
+            additionalLogins: additionalLogins.map { row in
+                LoginCredential(
+                    id: row.id,
+                    label: row.label,
+                    loginURL: row.loginURL.isEmpty ? nil : row.loginURL,
+                    username: row.username.isEmpty ? nil : row.username,
+                    hasPassword: !row.password.isEmpty
+                )
+            }
         )
 
         if password.isEmpty {
@@ -250,6 +314,22 @@ struct EntryDetailView: View {
         } else {
             try? VaultKeychainStore.save(secret: serial, forEntryID: entryID, slot: .serial)
             entry.hasSerial = true
+        }
+
+        // Conturi suplimentare: scrie/sterge parola fiecarui rand in slotul
+        // sau Keychain propriu, apoi curata secretele randurilor ELIMINATE
+        // de user in aceasta sesiune de editare (nu mai apar in
+        // additionalLogins, dar existau in originalCredentialIDs).
+        for row in additionalLogins {
+            if row.password.isEmpty {
+                try? VaultKeychainStore.deleteCredentialSecret(forEntryID: entryID, credentialID: row.id)
+            } else {
+                try? VaultKeychainStore.saveCredentialSecret(row.password, forEntryID: entryID, credentialID: row.id)
+            }
+        }
+        let currentIDs = Set(additionalLogins.map(\.id))
+        for removedID in originalCredentialIDs.subtracting(currentIDs) {
+            try? VaultKeychainStore.deleteCredentialSecret(forEntryID: entryID, credentialID: removedID)
         }
 
         store.upsert(entry)

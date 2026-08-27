@@ -75,6 +75,9 @@ def page(lang_data):
     flow.append(Paragraph(lang_data["usage_intro"], body_style))
     flow.append(bullets(lang_data["usage"]))
 
+    flow.append(Paragraph(lang_data["h_features"], h2_style))
+    flow.append(bullets(lang_data["features"]))
+
     flow.append(Paragraph(lang_data["h_trial"], h2_style))
     flow.append(Paragraph(lang_data["trial_intro"], body_style))
     flow.append(bullets(lang_data["trial"]))
@@ -107,16 +110,24 @@ RO = dict(
         "<b>Atașamente</b> — contracte, facturi, capturi — adăugate direct la fișă.",
         "<b>Export/Import</b> — backup criptat AES-256, protejat cu o parolă Master aleasă de tine.",
     ],
-    h_trial="3. Trial și activare",
+    h_features="3. Funcții avansate",
+    features=[
+        "<b>Căutare</b> — bara din capul listei găsește orice, chiar și scris greșit/prescurtat (ex. „epic sound” găsește „Epidemic Sound”), căutând în nume, notițe, linkuri și asset-uri cumpărate.",
+        "<b>Conturi/departamente multiple</b> — un produs poate avea mai multe conturi de login (ex. departament Video vs. Facturare) — buton „Adaugă alt cont/departament” în secțiunea Credențiale.",
+        "<b>Asset-uri cumpărate & foldere locale</b> — leagă un pachet cumpărat (efecte, SFX, LUT-uri) de folderul lui de pe disc, cu serie și link de descărcare proprii.",
+        "<b>Temă Light/Dark</b> — Setări (roata dințată din josul barei laterale) → Aspect, independent de tema sistemului.",
+        "<b>Setări & Ajutor</b> — același panou Setări oferă și accesul direct la acest ghid PDF, oricând, din aplicație.",
+    ],
+    h_trial="4. Trial și activare",
     trial_intro="Aplicația oferă acces complet timp de <b>15 zile</b> de la prima pornire. După expirare, poți în continuare vizualiza și exporta datele existente — doar adăugarea de intrări noi necesită o licență activă.",
     trial=[
         "Apasă „Donează 5€ pentru licență” — se deschide un mesaj WhatsApp cu ID-ul unic al calculatorului tău.",
         "După ce primești codul de licență, lipește-l în fereastra de activare.",
     ],
     trial_note="<b>Important:</b> dacă schimbi calculatorul, scrie din nou pe WhatsApp — codul se regenerează pentru noul ID.",
-    h_uninstall="4. Dezinstalare",
+    h_uninstall="5. Dezinstalare",
     uninstall="Rulează <b>Dezinstalare_GDCVault.command</b> din arhiva descărcată — șterge aplicația, toate fișierele de date și toate secretele din Keychain.",
-    h_support="5. Suport",
+    h_support="6. Suport",
     support="Pentru orice întrebare, scrie pe WhatsApp (buton în fereastra de activare) sau deschide un Issue pe GitHub.",
 )
 
@@ -137,16 +148,24 @@ EN = dict(
         "<b>Attachments</b> — contracts, invoices, screenshots — attached directly to the record.",
         "<b>Export/Import</b> — AES-256 encrypted backup, protected with a Master password you choose.",
     ],
-    h_trial="3. Trial and activation",
+    h_features="3. Advanced features",
+    features=[
+        "<b>Search</b> — the field at the top of the list finds anything, even when misspelled/abbreviated (e.g. \"epic sound\" finds \"Epidemic Sound\"), searching names, notes, links and purchased assets.",
+        "<b>Multiple accounts/departments</b> — a product can have several login accounts (e.g. Video vs. Billing department) — \"Add another account/department\" button in the Credentials section.",
+        "<b>Purchased assets & local folders</b> — link a purchased pack (effects, SFX, LUTs) to its folder on disk, with its own serial and download link.",
+        "<b>Light/Dark theme</b> — Settings (gear icon at the bottom of the sidebar) → Appearance, independent of the system theme.",
+        "<b>Settings & Help</b> — the same Settings panel gives direct access to this PDF guide, anytime, from within the app.",
+    ],
+    h_trial="4. Trial and activation",
     trial_intro="The app offers full access for <b>15 days</b> from the first launch. After that, you can still view and export existing data — only adding new entries requires an active license.",
     trial=[
         "Tap “Donate €5 for a license” — opens a WhatsApp message with your computer's unique ID.",
         "Once you receive the license code, paste it into the activation window.",
     ],
     trial_note="<b>Important:</b> if you switch computers, message WhatsApp again — the code is regenerated for the new ID.",
-    h_uninstall="4. Uninstalling",
+    h_uninstall="5. Uninstalling",
     uninstall="Run <b>Dezinstalare_GDCVault.command</b> from the downloaded archive — it removes the app, all data files, and all Keychain secrets.",
-    h_support="5. Support",
+    h_support="6. Support",
     support="For any question, message WhatsApp (button in the activation window) or open an Issue on GitHub.",
 )
 
@@ -167,16 +186,24 @@ ES = dict(
         "<b>Adjuntos</b> — contratos, facturas, capturas — añadidos directamente a la ficha.",
         "<b>Exportar/Importar</b> — copia de seguridad cifrada AES-256, protegida con una contraseña Maestra que tú eliges.",
     ],
-    h_trial="3. Prueba y activación",
+    h_features="3. Funciones avanzadas",
+    features=[
+        "<b>Búsqueda</b> — el campo encima de la lista encuentra cualquier cosa, incluso mal escrita/abreviada (ej. \"epic sound\" encuentra \"Epidemic Sound\"), buscando en nombres, notas, enlaces y activos comprados.",
+        "<b>Cuentas/departamentos múltiples</b> — un producto puede tener varias cuentas de acceso (ej. departamento Vídeo vs. Facturación) — botón \"Añadir otra cuenta/departamento\" en la sección Credenciales.",
+        "<b>Activos comprados y carpetas locales</b> — vincula un paquete comprado (efectos, SFX, LUTs) a su carpeta en disco, con su propia clave de serie y enlace de descarga.",
+        "<b>Tema claro/oscuro</b> — Ajustes (icono de engranaje en la parte inferior de la barra lateral) → Apariencia, independiente del tema del sistema.",
+        "<b>Ajustes y Ayuda</b> — el mismo panel de Ajustes da acceso directo a esta guía PDF, en cualquier momento, desde la app.",
+    ],
+    h_trial="4. Prueba y activación",
     trial_intro="La app ofrece acceso completo durante <b>15 días</b> desde el primer inicio. Después, puedes seguir viendo y exportando los datos existentes — solo añadir entradas nuevas requiere una licencia activa.",
     trial=[
         "Pulsa “Donar 5€ por la licencia” — se abre un mensaje de WhatsApp con el ID único de tu ordenador.",
         "Cuando recibas el código de licencia, pégalo en la ventana de activación.",
     ],
     trial_note="<b>Importante:</b> si cambias de ordenador, escribe de nuevo por WhatsApp — el código se regenera para el nuevo ID.",
-    h_uninstall="4. Desinstalación",
+    h_uninstall="5. Desinstalación",
     uninstall="Ejecuta <b>Dezinstalare_GDCVault.command</b> desde el archivo descargado — elimina la app, todos los archivos de datos y todos los secretos del Keychain.",
-    h_support="5. Soporte",
+    h_support="6. Soporte",
     support="Para cualquier pregunta, escribe por WhatsApp (botón en la ventana de activación) o abre un Issue en GitHub.",
 )
 

@@ -17,6 +17,13 @@ cp .build/release/GDCVault "$BUILD_OUT/Contents/MacOS/GDCVault"
 cp Info.plist "$BUILD_OUT/Contents/Info.plist"
 cp AppIcon.icns "$BUILD_OUT/Contents/Resources/AppIcon.icns"
 
+# Ghidul PDF trebuie sa fie accesibil DIN aplicatia rulata (Setari > Ghid,
+# meniul Help), nu doar in arhiva de instalare - vezi SettingsView.swift
+# (2026-08-27, cerinta Cristi: "nu gasesc PDF-ul").
+if [ -f "installer/Instructiuni_Utilizare.pdf" ]; then
+    cp "installer/Instructiuni_Utilizare.pdf" "$BUILD_OUT/Contents/Resources/"
+fi
+
 # Semnare cu Developer ID Application (certificat Apple real) daca e
 # configurat - vezi codesigning/README.md - altfel fallback ad-hoc, ca
 # rebuild-urile locale de dezvoltare sa functioneze si fara certificat.

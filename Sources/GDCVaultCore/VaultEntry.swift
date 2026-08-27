@@ -38,6 +38,29 @@ public struct PurchasedAsset: Identifiable, Codable, Equatable {
     }
 }
 
+/// Un cont/departament SUPLIMENTAR de login pe același produs (2026-08-27)
+/// — ex. Adobe are cont separat pentru departamentul Video și pentru cel
+/// de Foto. Contul PRINCIPAL rămâne `loginURL`/`username`/`hasPassword`
+/// direct pe VaultEntry (neschimbat, compatibilitate); acestea sunt
+/// ADIȚIONALE, listă dinamică. Parola fiecăruia e un slot Keychain propriu
+/// — vezi VaultKeychainStore.saveCredentialSecret(forEntryID:credentialID:).
+public struct LoginCredential: Identifiable, Codable, Equatable {
+    public var id: UUID
+    public var label: String       // "Departament Video", "Cont Facturare"
+    public var loginURL: String?
+    public var username: String?
+    public var hasPassword: Bool
+
+    public init(id: UUID = UUID(), label: String = "", loginURL: String? = nil,
+                username: String? = nil, hasPassword: Bool = false) {
+        self.id = id
+        self.label = label
+        self.loginURL = loginURL
+        self.username = username
+        self.hasPassword = hasPassword
+    }
+}
+
 /// O intrare din Vault = UN PRODUS/APLICAȚIE, cu tot ce ține de el la un
 /// loc — credențiale, licențiere, resurse. NU un "tip" ales dintr-un
 /// dropdown (asta a fost prima versiune, respinsă de Cristi 2026-08-24:
@@ -74,6 +97,9 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
     // în GDCPluginManagerCore.
     public var purchasedAssets: [PurchasedAsset]
 
+    // Conturi/departamente suplimentare (2026-08-27) — vezi LoginCredential.
+    public var additionalLogins: [LoginCredential]
+
     public init(
         id: UUID = UUID(),
         name: String,
@@ -87,7 +113,8 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         updateURL: String? = nil,
         notes: String? = nil,
         attachments: [AttachmentRef] = [],
-        purchasedAssets: [PurchasedAsset] = []
+        purchasedAssets: [PurchasedAsset] = [],
+        additionalLogins: [LoginCredential] = []
     ) {
         self.id = id
         self.name = name
@@ -102,11 +129,13 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         self.notes = notes
         self.attachments = attachments
         self.purchasedAssets = purchasedAssets
+        self.additionalLogins = additionalLogins
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, loginURL, username, hasPassword, licenseType, expiresAt,
-             hasSerial, downloadURL, updateURL, notes, attachments, purchasedAssets
+             hasSerial, downloadURL, updateURL, notes, attachments, purchasedAssets,
+             additionalLogins
     }
 
     public init(from decoder: Decoder) throws {
@@ -124,6 +153,7 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         notes = try c.decodeIfPresent(String.self, forKey: .notes)
         attachments = try c.decodeIfPresent([AttachmentRef].self, forKey: .attachments) ?? []
         purchasedAssets = try c.decodeIfPresent([PurchasedAsset].self, forKey: .purchasedAssets) ?? []
+        additionalLogins = try c.decodeIfPresent([LoginCredential].self, forKey: .additionalLogins) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -141,6 +171,7 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         try c.encodeIfPresent(notes, forKey: .notes)
         try c.encode(attachments, forKey: .attachments)
         try c.encode(purchasedAssets, forKey: .purchasedAssets)
+        try c.encode(additionalLogins, forKey: .additionalLogins)
     }
 
     /// Zile pana la expirare; negativ daca a expirat deja. nil = nu expira/nu se aplica.
