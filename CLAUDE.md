@@ -509,6 +509,14 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
 
+## Release-țintă de test 2026-08-27 — v0.5.3, FĂRĂ schimbare funcțională
+Publicat exclusiv ca țintă pentru testul manual al Self-Updater-ului din
+(e) mai jos — la fel ca „v2.5.5 doar ca țintă de test” din DataMover.
+Cristi trebuie să instaleze o dată manual `v0.5.2` (prima versiune cu
+Self-Updater), apoi să verifice din aplicație că „Actualizează acum”
+descarcă+instalează `v0.5.3` fără să deschidă browserul. Fără el, n-ar
+exista nimic mai nou de descărcat cu care să testeze fluxul.
+
 ## Bug real 2026-08-27 (e) — Self-Updater real (fix-ul de link direct NU era suficient)
 Cristi a semnalat, cu screenshot-uri (Mac ȘI Windows): "e la fel, nu e
 bine... clientul niciodată nu trebuie să vadă GitHub. Citește CLAUDE.md
