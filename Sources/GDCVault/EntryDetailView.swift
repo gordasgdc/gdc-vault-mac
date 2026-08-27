@@ -31,6 +31,7 @@ struct EntryDetailView: View {
     @State private var updateURL: String
     @State private var notes: String
     @State private var attachments: [AttachmentRef]
+    @State private var purchasedAssets: [PurchasedAsset]
 
     private let entryID: UUID
 
@@ -53,6 +54,7 @@ struct EntryDetailView: View {
         _updateURL = State(initialValue: initialEntry.updateURL ?? "")
         _notes = State(initialValue: initialEntry.notes ?? "")
         _attachments = State(initialValue: initialEntry.attachments)
+        _purchasedAssets = State(initialValue: initialEntry.purchasedAssets)
 
         // PITFALL FIXED 2026-08-24 (bug critic de UX raportat de Cristi):
         // campurile de parola/serie erau write-only ("gol = nu schimba"),
@@ -103,9 +105,64 @@ struct EntryDetailView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         TextField("Link descărcare", text: $downloadURL).textFieldStyle(.roundedBorder)
                         TextField("Link actualizări (opțional)", text: $updateURL).textFieldStyle(.roundedBorder)
-                        TextField("Notițe", text: $notes, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(3...8)
+                        Text("Notițe").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $notes)
+                            .font(.system(size: 13))
+                            .frame(minHeight: 110, maxHeight: 220)
+                            .scrollContentBackground(.hidden)
+                            .padding(6)
+                            .background(Color(nsColor: .textBackgroundColor))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3)))
+                    }
+                    .padding(8)
+                }
+
+                GroupBox("Asset-uri cumpărate & foldere locale") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach($purchasedAssets) { $asset in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    TextField("Nume asset/pachet (ex. Cinematic SFX Vol 1)", text: $asset.name)
+                                        .textFieldStyle(.roundedBorder)
+                                    Button {
+                                        purchasedAssets.removeAll { $0.id == asset.id }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                HStack(spacing: 8) {
+                                    TextField("Cale folder local", text: Binding(
+                                        get: { asset.folderPath ?? "" },
+                                        set: { asset.folderPath = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .textFieldStyle(.roundedBorder)
+                                    Button("Selectează Folder…") { pickFolder(for: $asset) }
+                                    Button("Deschide Folder") { openFolder(asset.folderPath) }
+                                        .disabled(asset.folderPath == nil)
+                                }
+                                HStack(spacing: 8) {
+                                    TextField("Serie/licență pachet", text: Binding(
+                                        get: { asset.licenseKey ?? "" },
+                                        set: { asset.licenseKey = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .textFieldStyle(.roundedBorder)
+                                    TextField("Link descărcare", text: Binding(
+                                        get: { asset.downloadURL ?? "" },
+                                        set: { asset.downloadURL = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .textFieldStyle(.roundedBorder)
+                                }
+                            }
+                            .padding(8)
+                            .background(Color.secondary.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        Button {
+                            purchasedAssets.append(PurchasedAsset())
+                        } label: {
+                            Label("Adaugă alt asset/efect", systemImage: "plus.circle")
+                        }
                     }
                     .padding(8)
                 }
@@ -175,7 +232,8 @@ struct EntryDetailView: View {
             downloadURL: downloadURL.isEmpty ? nil : downloadURL,
             updateURL: updateURL.isEmpty ? nil : updateURL,
             notes: notes.isEmpty ? nil : notes,
-            attachments: attachments
+            attachments: attachments,
+            purchasedAssets: purchasedAssets
         )
 
         if password.isEmpty {
@@ -215,5 +273,21 @@ struct EntryDetailView: View {
                 attachments.append(ref)
             }
         }
+    }
+
+    private func pickFolder(for asset: Binding<PurchasedAsset>) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = "Alege folderul local unde ai salvat acest asset/pachet."
+        panel.prompt = "Selectează"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        asset.wrappedValue.folderPath = url.path
+    }
+
+    private func openFolder(_ path: String?) {
+        guard let path, !path.isEmpty else { return }
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
     }
 }

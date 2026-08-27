@@ -39,6 +39,13 @@ public final class LicenseManager: ObservableObject {
         loadSavedLicense()
     }
 
+    /// Doar pentru afișare compactă (Profil sidebar) — codul de licență
+    /// salvat, dacă există. Nu validează nimic aici, doar citește fișierul.
+    public var savedLicenseCode: String? {
+        guard let url = activationFileURL else { return nil }
+        return try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     public var trialStartDate: Date {
         Date(timeIntervalSince1970: defaults.double(forKey: trialStartKey))
     }

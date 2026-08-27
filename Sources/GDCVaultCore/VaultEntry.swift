@@ -18,6 +18,26 @@ public enum LicenseType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Un asset/pachet cumpărat de la un furnizor (efecte, SFX, LUT-uri) legat
+/// de un folder local de pe disc — parte a fișei unui produs, listă
+/// dinamică (un produs poate avea mai multe asset-uri cumpărate).
+public struct PurchasedAsset: Identifiable, Codable, Equatable {
+    public var id: UUID
+    public var name: String
+    public var folderPath: String?
+    public var licenseKey: String?
+    public var downloadURL: String?
+
+    public init(id: UUID = UUID(), name: String = "", folderPath: String? = nil,
+                licenseKey: String? = nil, downloadURL: String? = nil) {
+        self.id = id
+        self.name = name
+        self.folderPath = folderPath
+        self.licenseKey = licenseKey
+        self.downloadURL = downloadURL
+    }
+}
+
 /// O intrare din Vault = UN PRODUS/APLICAȚIE, cu tot ce ține de el la un
 /// loc — credențiale, licențiere, resurse. NU un "tip" ales dintr-un
 /// dropdown (asta a fost prima versiune, respinsă de Cristi 2026-08-24:
@@ -48,6 +68,12 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
     public var notes: String?
     public var attachments: [AttachmentRef]
 
+    // Asset-uri cumpărate & foldere locale (2026-08-27) — decodate cu
+    // decodeIfPresent + fallback [] ca intrările vechi din entries.json
+    // (fără acest câmp) să rămână decodabile, la fel ca Catalog.audioTracks
+    // în GDCPluginManagerCore.
+    public var purchasedAssets: [PurchasedAsset]
+
     public init(
         id: UUID = UUID(),
         name: String,
@@ -60,7 +86,8 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         downloadURL: String? = nil,
         updateURL: String? = nil,
         notes: String? = nil,
-        attachments: [AttachmentRef] = []
+        attachments: [AttachmentRef] = [],
+        purchasedAssets: [PurchasedAsset] = []
     ) {
         self.id = id
         self.name = name
@@ -74,6 +101,46 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         self.updateURL = updateURL
         self.notes = notes
         self.attachments = attachments
+        self.purchasedAssets = purchasedAssets
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, loginURL, username, hasPassword, licenseType, expiresAt,
+             hasSerial, downloadURL, updateURL, notes, attachments, purchasedAssets
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        loginURL = try c.decodeIfPresent(String.self, forKey: .loginURL)
+        username = try c.decodeIfPresent(String.self, forKey: .username)
+        hasPassword = try c.decodeIfPresent(Bool.self, forKey: .hasPassword) ?? false
+        licenseType = try c.decodeIfPresent(LicenseType.self, forKey: .licenseType) ?? .none
+        expiresAt = try c.decodeIfPresent(Date.self, forKey: .expiresAt)
+        hasSerial = try c.decodeIfPresent(Bool.self, forKey: .hasSerial) ?? false
+        downloadURL = try c.decodeIfPresent(String.self, forKey: .downloadURL)
+        updateURL = try c.decodeIfPresent(String.self, forKey: .updateURL)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        attachments = try c.decodeIfPresent([AttachmentRef].self, forKey: .attachments) ?? []
+        purchasedAssets = try c.decodeIfPresent([PurchasedAsset].self, forKey: .purchasedAssets) ?? []
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encodeIfPresent(loginURL, forKey: .loginURL)
+        try c.encodeIfPresent(username, forKey: .username)
+        try c.encode(hasPassword, forKey: .hasPassword)
+        try c.encode(licenseType, forKey: .licenseType)
+        try c.encodeIfPresent(expiresAt, forKey: .expiresAt)
+        try c.encode(hasSerial, forKey: .hasSerial)
+        try c.encodeIfPresent(downloadURL, forKey: .downloadURL)
+        try c.encodeIfPresent(updateURL, forKey: .updateURL)
+        try c.encodeIfPresent(notes, forKey: .notes)
+        try c.encode(attachments, forKey: .attachments)
+        try c.encode(purchasedAssets, forKey: .purchasedAssets)
     }
 
     /// Zile pana la expirare; negativ daca a expirat deja. nil = nu expira/nu se aplica.

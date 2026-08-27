@@ -509,6 +509,23 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
 
+## Etapa 2026-08-27 — Asset-uri cumpărate, Notițe expandabile, Profil compact
+Cerință Cristi: (1) Auto-Update — deja 100% funcțional (verificat, fără
+modificări); (2) Sidebar redimensionabil — deja nativ prin
+`NavigationSplitView` pe Mac (drag pe splitter), fără cod suplimentar;
+Notițe: `TextField(axis:.vertical)` → `TextEditor` (110-220pt, scrollbar
+nativ); Profil sidebar: `ProfileSidebarBlock` arată acum inline (nu doar
+în popover) buton Copy Machine ID + status licență/serie sau buton
+"Activează" (`LicenseManager.savedLicenseCode`, nou). (3) Secțiune nouă
+"Asset-uri cumpărate & foldere locale" — `PurchasedAsset` (nume, cale
+folder, serie, link) în `VaultEntry.purchasedAssets: [PurchasedAsset]`,
+decodat cu `decodeIfPresent` + fallback `[]` (backward-compat cu
+`entries.json` vechi, fără migrare). UI: listă dinamică în
+`EntryDetailView`, `NSOpenPanel(canChooseDirectories:true)` pentru
+selectare + `NSWorkspace.selectFile(inFileViewerRootedAtPath:)` pentru
+"Deschide Folder". Versiune → `0.3.0` (MINOR, feature nouă vizibilă).
+Oglindă identică pe Windows — vezi `GDCVaultWin/CLAUDE.md`.
+
 ## Etapa finală (2026-08-26) — Profil/HWID sidebar + Sistem de Revocare Licențe
 Port 1:1 din GDC Plugin Manager (vezi CLAUDE.md Partea 1, Regula 12):
 `SupabaseConfig.swift`/`RevocationCheck.swift` (GDCVaultCore, noi —
