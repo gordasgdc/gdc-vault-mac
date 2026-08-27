@@ -509,6 +509,30 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
 
+## Etapa 2026-08-27 (c) — Conturi multiple, Temă Light/Dark, Setări, Help PDF
+Feedback direct Cristi după primul test: (1) **Conturi/departamente
+multiple** — `LoginCredential` (nou, VaultEntry.swift) + listă
+`additionalLogins: [LoginCredential]`, decodată cu fallback `[]`. Contul
+PRINCIPAL rămâne neschimbat pe `VaultEntry` direct; cele suplimentare au
+parolă proprie în Keychain (`VaultKeychainStore.*CredentialSecret`, account
+`<entryID>.credential.<credID>`, sweep la ștergerea intrării). UI:
+`EntryDetailView`, listă dinamică sub parola principală, „Adaugă alt cont/
+departament”. (2) **Temă Light/Dark/Sistem** — `ThemeManager.swift` (nou,
+port 1:1 din MediaFlow Monitor, `NSApp.appearance`), persistat
+`UserDefaults`. (3) **Setări** — `SettingsView.swift` (nou), sheet cu
+Picker de temă + buton „Deschide Ghidul de Utilizare (PDF)”, deschis din
+roata dințată nouă din footer-ul sidebar-ului (`ContentView.swift`).
+(4) **Help PDF accesibil din aplicație** — lipsea complet din UI-ul rulat
+(exista doar în arhiva de instalare); `HelpGuide.open()` deschide
+`Instructiuni_Utilizare.pdf` din `Bundle.main` — `build_app.sh` ȘI
+`build_installer.sh` copiază acum PDF-ul în `Contents/Resources/`, altfel
+buildurile locale de dezvoltare nu-l au. Meniul nativ macOS „Help” →
+`CommandGroup(replacing: .help)` deschide același ghid. PDF regenerat
+(`installer/generate_pdf.py`) cu secțiune nouă „3. Funcții avansate” în
+RO/EN/ES (căutare, conturi multiple, asset-uri, temă, setări) —
+renumerotare 4/5/6 pentru Trial/Dezinstalare/Suport. Versiune → `0.5.0`
+(MINOR). Oglindă identică pe Windows.
+
 ## Etapa 2026-08-27 (b) — Bara de căutare fuzzy globală
 `FuzzySearch.swift` (nou, GDCVaultCore) — potrivire în 2 trepte: substring
 direct, apoi subsecvență de caractere în ordine (insensibil la

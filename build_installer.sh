@@ -25,6 +25,11 @@ mkdir -p "$BUILD_OUT/Contents/MacOS" "$BUILD_OUT/Contents/Resources"
 cp .build/release/GDCVault "$BUILD_OUT/Contents/MacOS/GDCVault"
 cp Info.plist "$BUILD_OUT/Contents/Info.plist"
 cp AppIcon.icns "$BUILD_OUT/Contents/Resources/AppIcon.icns"
+# Ghidul PDF accesibil DIN aplicatie (Setari + meniul Help), nu doar in
+# arhiva - vezi build_app.sh si SettingsView.swift (2026-08-27).
+if [ -f "installer/Instructiuni_Utilizare.pdf" ]; then
+    cp "installer/Instructiuni_Utilizare.pdf" "$BUILD_OUT/Contents/Resources/"
+fi
 
 if [ -n "${APPLE_SIGN_IDENTITY_APP:-}" ]; then
     ./codesigning/sign-and-notarize.sh app "$BUILD_OUT"

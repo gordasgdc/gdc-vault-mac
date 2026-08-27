@@ -15,6 +15,9 @@ struct GDCVaultApp: App {
             CommandGroup(after: .appInfo) {
                 Button("Caută actualizări…") { UpdateChecker.checkAndShowAlert() }
             }
+            CommandGroup(replacing: .help) {
+                Button("Ghid de Utilizare GDC Vault (PDF)") { HelpGuide.open() }
+            }
         }
     }
 

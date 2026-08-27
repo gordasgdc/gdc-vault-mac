@@ -37,6 +37,9 @@ struct ContentView: View {
     @State private var showUpdateAlert = false
     @State private var updateAlertVersion = ""
 
+    /// Setări (temă + Ghid PDF) — vezi SettingsView.swift, 2026-08-27.
+    @State private var showSettings = false
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
     }
@@ -56,6 +59,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showActivation) {
             ActivationSheet(license: license, isPresented: $showActivation)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
         }
         .alert("Este disponibilă o versiune nouă", isPresented: $showUpdateAlert) {
             Button("Descarcă") {
@@ -200,6 +206,15 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Setări")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

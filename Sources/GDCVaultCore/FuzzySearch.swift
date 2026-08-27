@@ -50,6 +50,11 @@ public extension VaultEntry {
         if FuzzySearch.matches(query: trimmed, in: notes) { return true }
         if FuzzySearch.matches(query: trimmed, in: downloadURL) { return true }
         if FuzzySearch.matches(query: trimmed, in: updateURL) { return true }
+        for login in additionalLogins {
+            if FuzzySearch.matches(query: trimmed, in: login.label) { return true }
+            if FuzzySearch.matches(query: trimmed, in: login.loginURL) { return true }
+            if FuzzySearch.matches(query: trimmed, in: login.username) { return true }
+        }
         for asset in purchasedAssets {
             if FuzzySearch.matches(query: trimmed, in: asset.name) { return true }
             if FuzzySearch.matches(query: trimmed, in: asset.licenseKey) { return true }

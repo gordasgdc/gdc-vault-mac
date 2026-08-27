@@ -87,5 +87,86 @@ public enum VaultKeychainStore {
     public static func deleteAll(forEntryID id: UUID) throws {
         try delete(forEntryID: id, slot: .password)
         try delete(forEntryID: id, slot: .serial)
+        try deleteAllCredentialSecrets(forEntryID: id)
+    }
+
+    // MARK: - Conturi/departamente suplimentare (2026-08-27)
+    //
+    // Un produs poate avea MAI MULTE conturi de login (ex. departamente
+    // diferite pe același Adobe/Motion Array) — vezi LoginCredential in
+    // VaultEntry.swift. Fiecare cont suplimentar are propria parolă,
+    // identificata de account-ul Keychain `<entryID>.credential.<credID>`,
+    // independent de sloturile fixe .password/.serial de mai sus.
+
+    private static func credentialAccount(entryID: UUID, credentialID: UUID) -> String {
+        "\(entryID.uuidString).credential.\(credentialID.uuidString)"
+    }
+
+    public static func saveCredentialSecret(_ secret: String, forEntryID entryID: UUID, credentialID: UUID) throws {
+        let account = credentialAccount(entryID: entryID, credentialID: credentialID)
+        try? deleteCredentialSecret(forEntryID: entryID, credentialID: credentialID)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: Data(secret.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+        ]
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else { throw StoreError.unhandled(status) }
+    }
+
+    public static func readCredentialSecret(forEntryID entryID: UUID, credentialID: UUID) throws -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: credentialAccount(entryID: entryID, credentialID: credentialID),
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            throw StoreError.unhandled(status)
+        }
+        return String(data: data, encoding: .utf8)
+    }
+
+    public static func deleteCredentialSecret(forEntryID entryID: UUID, credentialID: UUID) throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: credentialAccount(entryID: entryID, credentialID: credentialID)
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw StoreError.unhandled(status)
+        }
+    }
+
+    /// Baleiaza toate item-urile serviciului si sterge cele cu prefixul
+    /// `<entryID>.credential.` — SecItemDelete nu suporta wildcard direct
+    /// pe kSecAttrAccount, deci enumeram intai.
+    public static func deleteAllCredentialSecrets(forEntryID entryID: UUID) throws {
+        let prefix = "\(entryID.uuidString).credential."
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let items = result as? [[String: Any]] else { return }
+        for item in items {
+            guard let account = item[kSecAttrAccount as String] as? String, account.hasPrefix(prefix) else { continue }
+            let deleteQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account
+            ]
+            SecItemDelete(deleteQuery as CFDictionary)
+        }
     }
 }
