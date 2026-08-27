@@ -509,6 +509,34 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
 
+## Bug real 2026-08-27 (e) — Self-Updater real (fix-ul de link direct NU era suficient)
+Cristi a semnalat, cu screenshot-uri (Mac ȘI Windows): "e la fel, nu e
+bine... clientul niciodată nu trebuie să vadă GitHub. Citește CLAUDE.md
+din DataMover/MediaFlow-Monitor." Fix-ul anterior (d) doar înlocuise
+pagina de release cu link-ul direct al asset-ului — tot deschidea
+browserul (doar descărca fișierul în loc de a arăta pagina), nu era ce
+face DataMover/gdc-plugin-manager de facto: un **Self-Updater real**, care
+descarcă și lansează installer-ul din interiorul aplicației, fără
+NICIODATĂ să atingă un tab de browser. Portat 1:1
+(`SelfUpdater.swift`, nou) din `DataMover/mac-native/Sources/DataMoverMac/
+SelfUpdater.swift`: descarcă `.pkg`-ul cu `URLSession.download` (URL-ul
+asset-ului `GDCVault.pkg` citit direct din JSON-ul GitHub API, nu
+hardcodat), apoi îl instalează printr-un script bash elevat cu
+`osascript ... with administrator privileges` (promptul NATIV de parolă
+admin macOS — niciodată `sudo` interactiv, niciodată Terminal vizibil),
+care rulează `installer -pkg ... -target /` și relansează aplicația
+singur. `UpdateChecker.swift` — `Result.newVersion` acum poartă și URL-ul
+`.pkg`-ului găsit în `assets[]`; butonul din alertă (atât cel manual cât
+și popup-ul automat din `ContentView.swift`) devine „Actualizează acum”
+(nu mai „Descarcă”) și cheamă `SelfUpdater.downloadAndInstall`. Versiune
+→ `0.5.2` (PATCH — repară mecanismul de update, nu adaugă UI nou).
+**WARNING nemodificat de la DataMover**: pasul de instalare (promptul de
+parolă admin) nu poate fi verificat automat de Claude — verificat automat
+doar descărcarea reală (HTTP 200, fișier `.pkg` integru pe disc).
+Instalarea + relansarea efectivă TREBUIE confirmată manual, o dată, de
+Cristi. Oglindă identică pe Windows (installer lansat direct, nesilențios,
+tot fără browser — vezi `GDCVaultWin/CLAUDE.md`).
+
 ## Bug real 2026-08-27 (d) — "Descarcă" din popup-ul de update deschidea pagina GitHub, nu descărca
 Găsit pe Windows de Cristi (aceeași cauză exista identic aici) — butonul
 "Descarcă" din alerta de update ȘI din `checkAndShowAlert()` deschideau
