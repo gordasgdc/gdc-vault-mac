@@ -509,6 +509,18 @@ Integrare ecosistem: `gdc-vault` apare acum și în `catalog.json` (categoria
 secțiunea Aplicații din GDC Plugin Manager, cu link către
 `gordas.dev/gdc-vault` (pagina de prezentare).
 
+## Etapa 2026-08-27 (b) — Bara de căutare fuzzy globală
+`FuzzySearch.swift` (nou, GDCVaultCore) — potrivire în 2 trepte: substring
+direct, apoi subsecvență de caractere în ordine (insensibil la
+majuscule/diacritice/spații) ca "epic sound" să găsească "Epidemic Sound".
+`VaultEntry.matchesSearch(_:)` caută în Nume, URL login, Notițe, Resurse
+(download/update URL) și TOATE asset-urile cumpărate (nume/serie/link/
+folder) — NU în secretele reale din Keychain (parolă/serie a produsului
+însuși), doar `PurchasedAsset.licenseKey` e text în clar și intră în
+căutare. UI: `.searchable(text:placement:.sidebar)` nativ pe lista din
+`ContentView`, filtrare live prin `filteredEntries`. Versiune → `0.4.0`
+(MINOR). Oglindă identică pe Windows.
+
 ## Etapa 2026-08-27 — Asset-uri cumpărate, Notițe expandabile, Profil compact
 Cerință Cristi: (1) Auto-Update — deja 100% funcțional (verificat, fără
 modificări); (2) Sidebar redimensionabil — deja nativ prin

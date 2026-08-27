@@ -21,6 +21,14 @@ struct ContentView: View {
     @State private var showImportError = false
     @State private var importErrorMessage = ""
 
+    /// Căutare fuzzy globală (2026-08-27) — Nume, URL login, Notițe,
+    /// Resurse și asset-uri cumpărate. Vezi FuzzySearch.swift.
+    @State private var searchText = ""
+
+    private var filteredEntries: [VaultEntry] {
+        store.entries.filter { $0.matchesSearch(searchText) }
+    }
+
     /// Pop-up automat, o singura data per versiune noua (vezi
     /// UpdateChecker.checkSilentlyOnLaunch) - in plus fata de butonul
     /// manual din meniu ("Caută actualizări…"), ca cerinta "Directivei
@@ -160,10 +168,11 @@ struct ContentView: View {
 
             Divider()
 
-            List(store.entries, selection: $selectedEntryID) { entry in
+            List(filteredEntries, selection: $selectedEntryID) { entry in
                 VaultRow(entry: entry).tag(entry.id)
             }
             .listStyle(.sidebar)
+            .searchable(text: $searchText, placement: .sidebar, prompt: "Caută aplicație, asset, notiță, serie…")
             .onChange(of: selectedEntryID) {
                 // Selectarea altei intrari din lista anuleaza un draft
                 // neterminat — un singur "loc de lucru" la un moment dat.
