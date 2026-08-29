@@ -1,5 +1,12 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.6.1 (2026-08-29)
+- **Ghidul PDF redesenat**: copertă cu banner de brand, 3 capturi reale ale
+  aplicației (fereastra principală, adăugare aplicație, setări), footer
+  paginat — la fel ca ghidurile DataMover. Fără schimbare de cod, doar
+  conținutul PDF bundle-uit (necesar un bump ca noul PDF să ajungă la
+  clienți, nu doar în repo).
+
 ## v0.6.0 (2026-08-29)
 - **Setare explicită "Mărime Text"** (Mic/Normal/Mare/Foarte mare, Regula 24
   — lipsea, adăugat standard după ultima actualizare a acestui repo) — în
