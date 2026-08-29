@@ -8,6 +8,7 @@
 # romanesti (s-comma, t-comma) nu exista in WinAnsiEncoding-ul fonturilor
 # PDF standard - fara asta, ș/ț ies ca patratele goale.
 import os
+from PIL import Image as PILImage
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -15,20 +16,32 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem, PageBreak, HRFlowable
+    SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem, PageBreak, HRFlowable, Image
 )
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Instructiuni_Utilizare.pdf")
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "Instructiuni_Utilizare.pdf")
+SCREENSHOTS_DIR = os.path.join(HERE, "screenshots")
+APP_VERSION = "0.6.0"
 
 pdfmetrics.registerFont(TTFont("Arial", "/System/Library/Fonts/Supplemental/Arial.ttf"))
 pdfmetrics.registerFont(TTFont("Arial-Bold", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"))
+pdfmetrics.registerFont(TTFont("Arial-Italic", "/System/Library/Fonts/Supplemental/Arial Italic.ttf"))
 styles = getSampleStyleSheet()
 ACCENT = colors.HexColor("#0e8a75")
+INK_DARK = colors.HexColor("#0f1720")
 MUTED = colors.HexColor("#6a6a6a")
 FAINT = colors.HexColor("#8a8a8a")
 NOTE_BG = colors.HexColor("#f2fbf9")
 NOTE_BORDER = colors.HexColor("#35d6be")
 
+# [REDESENAT 2026-08-29] Cerut explicit de Cristi ("vreau complet tot") -
+# acelasi tipar de coperta + bara de accent + footer paginat + capturi
+# reale deja aplicat la DataMover (vezi acel generate_guides.py).
+cover_app_style = ParagraphStyle("CoverApp", fontName="Arial-Bold", fontSize=27, textColor=colors.white, leading=31)
+cover_sub_style = ParagraphStyle("CoverSub", fontName="Arial", fontSize=13, textColor=colors.HexColor("#8fe0d2"), spaceBefore=6)
+cover_ver_style = ParagraphStyle("CoverVer", fontName="Arial", fontSize=10, textColor=colors.HexColor("#c7cbd1"), spaceBefore=4)
+caption_style = ParagraphStyle("Caption", fontName="Arial-Italic", fontSize=8.5, textColor=FAINT, spaceBefore=3, spaceAfter=10, alignment=1)
 title_style = ParagraphStyle("TitleGDC", parent=styles["Title"], fontName="Arial-Bold",
                               fontSize=19, leading=22, spaceAfter=2, textColor=colors.HexColor("#1a1a1a"))
 subtitle_style = ParagraphStyle("Subtitle", parent=styles["Normal"], fontName="Arial",
@@ -42,6 +55,46 @@ note_style = ParagraphStyle("Note", parent=body_style, backColor=NOTE_BG,
                              borderColor=NOTE_BORDER, borderWidth=0, leftIndent=10, fontSize=10)
 footer_style = ParagraphStyle("Footer", parent=styles["Normal"], fontName="Arial",
                                fontSize=8.5, textColor=FAINT, spaceBefore=20)
+
+MAX_IMG_W = 15.5 * cm
+
+
+def screenshot(filename, caption_text):
+    """Sare peste discret daca fisierul lipseste local (vezi acelasi tipar
+    in DataMover/generate_guides.py)."""
+    path = os.path.join(SCREENSHOTS_DIR, filename)
+    if not os.path.exists(path):
+        return []
+    with PILImage.open(path) as im:
+        w, h = im.size
+    target_w = min(MAX_IMG_W, w / 2)  # capturi retina ~2x
+    scaled_h = target_w * h / w
+    img = Image(path, width=target_w, height=scaled_h)
+    img.hAlign = "CENTER"
+    return [img, Paragraph(caption_text, caption_style)]
+
+
+def _cover_canvas(canvas, doc):
+    canvas.saveState()
+    w, h = A4
+    band_h = 8.5 * cm
+    canvas.setFillColor(INK_DARK)
+    canvas.rect(0, h - band_h, w, band_h, fill=1, stroke=0)
+    canvas.setFillColor(ACCENT)
+    canvas.rect(0, h - band_h - 0.18 * cm, w, 0.18 * cm, fill=1, stroke=0)
+    canvas.restoreState()
+
+
+def _content_canvas(canvas, doc):
+    canvas.saveState()
+    w, h = A4
+    canvas.setFillColor(ACCENT)
+    canvas.rect(0, h - 0.4 * cm, w, 0.4 * cm, fill=1, stroke=0)
+    canvas.setFont("Arial", 8)
+    canvas.setFillColor(FAINT)
+    canvas.drawString(2 * cm, 1.2 * cm, "GDC Vault — Ghid de utilizare")
+    canvas.drawRightString(w - 2 * cm, 1.2 * cm, f"{canvas.getPageNumber()}")
+    canvas.restoreState()
 
 
 def section(title, items_html, is_note=False):
@@ -70,13 +123,16 @@ def page(lang_data):
 
     flow.append(Paragraph(lang_data["h_install"], h2_style))
     flow.append(bullets(lang_data["install"]))
+    flow.extend(screenshot("main.png", lang_data["shot_main"]))
 
     flow.append(Paragraph(lang_data["h_usage"], h2_style))
     flow.append(Paragraph(lang_data["usage_intro"], body_style))
     flow.append(bullets(lang_data["usage"]))
+    flow.extend(screenshot("add-app.png", lang_data["shot_add"]))
 
     flow.append(Paragraph(lang_data["h_features"], h2_style))
     flow.append(bullets(lang_data["features"]))
+    flow.extend(screenshot("settings.png", lang_data["shot_settings"]))
 
     flow.append(Paragraph(lang_data["h_trial"], h2_style))
     flow.append(Paragraph(lang_data["trial_intro"], body_style))
@@ -102,6 +158,9 @@ RO = dict(
         "Urmează pașii instalatorului. Va trebui să accepți Termenii și Condițiile pentru a continua.",
         "Aplicația se instalează automat în folderul Applications.",
     ],
+    shot_main="Fereastra principală — o intrare = un produs, cu tot ce ține de el",
+    shot_add="Adăugarea unei aplicații noi — credențiale, licențiere, resurse, atașamente",
+    shot_settings="Setări — Aspect (Sistem/Luminos/Întunecat), Mărime text, acces la acest ghid",
     h_usage="2. Folosire rapidă",
     usage_intro="O intrare = un produs, cu tot ce ține de el pe aceeași fișă: cont de login, cheie de serie, dată de expirare, notițe și atașamente.",
     usage=[
@@ -140,6 +199,9 @@ EN = dict(
         "Follow the installer steps. You'll need to accept the Terms and Conditions to continue.",
         "The app installs automatically into the Applications folder.",
     ],
+    shot_main="Main window — one entry = one product, with everything on it",
+    shot_add="Adding a new app — credentials, licensing, resources, attachments",
+    shot_settings="Settings — Appearance (System/Light/Dark), Text size, access to this guide",
     h_usage="2. Quick usage",
     usage_intro="One entry = one product, with everything on the same record: login account, serial key, expiration date, notes and attachments.",
     usage=[
@@ -178,6 +240,9 @@ ES = dict(
         "Sigue los pasos del instalador. Deberás aceptar los Términos y Condiciones para continuar.",
         "La app se instala automáticamente en la carpeta Aplicaciones.",
     ],
+    shot_main="Ventana principal — una entrada = un producto, con todo junto",
+    shot_add="Añadir una aplicación nueva — credenciales, licencia, recursos, adjuntos",
+    shot_settings="Ajustes — Apariencia (Sistema/Claro/Oscuro), Tamaño de texto, acceso a esta guía",
     h_usage="2. Uso rápido",
     usage_intro="Una entrada = un producto, con todo en la misma ficha: cuenta de acceso, clave de serie, fecha de caducidad, notas y adjuntos.",
     usage=[
@@ -212,11 +277,20 @@ doc = SimpleDocTemplate(
     leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2.2 * cm, bottomMargin=2.2 * cm,
 )
 
-story = []
+story = [
+    Spacer(1, 3.4 * cm),
+    Paragraph("GDC Vault", cover_app_style),
+    Paragraph("Ghid de utilizare — Română / English / Español", cover_sub_style),
+    Spacer(1, 3.2 * cm),
+    Paragraph(f"Versiunea {APP_VERSION}", cover_ver_style),
+    PageBreak(),
+]
 for i, lang in enumerate([RO, EN, ES]):
     story.extend(page(lang))
     if i < 2:
         story.append(PageBreak())
 
-doc.build(story)
+doc.build(story,
+          onFirstPage=lambda c, d: _cover_canvas(c, d),
+          onLaterPages=lambda c, d: _content_canvas(c, d))
 print("wrote", OUT)
