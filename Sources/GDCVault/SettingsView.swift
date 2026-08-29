@@ -9,6 +9,7 @@ import AppKit
 /// Help.
 struct SettingsView: View {
     @ObservedObject private var theme = ThemeManager.shared
+    @ObservedObject private var textScale = TextScaleManager.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -29,6 +30,18 @@ struct SettingsView: View {
                 }
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            GroupBox("Mărime text") {
+                Picker("", selection: Binding(
+                    get: { textScale.current },
+                    set: { textScale.current = $0 }
+                )) {
+                    ForEach(TextScalePreference.allCases) { t in Text(t.label).tag(t) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(8)
             }
 
             GroupBox("Ajutor") {
