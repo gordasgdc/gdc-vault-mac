@@ -11,6 +11,7 @@ import GDCVaultCore
 struct ContentView: View {
     @StateObject private var store = VaultMetadataStore()
     @ObservedObject private var license = LicenseManager.shared
+    @ObservedObject private var textScale = TextScaleManager.shared
     @State private var showActivation = false
     @State private var selectedEntryID: UUID?
     /// Non-nil cât timp se completează o intrare nouă, ÎNCĂ nesalvată —
@@ -145,6 +146,7 @@ struct ContentView: View {
             Text(importErrorMessage)
         }
         .frame(minWidth: 900, minHeight: 560)
+        .dynamicTypeSize(textScale.current.dynamicTypeSize)
     }
 
     private var sidebar: some View {
