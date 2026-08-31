@@ -1,5 +1,10 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.6.2 (2026-08-31) — Preț dinamic din Furnizor
+Suma de donație din ecranul de Activare + mesajul WhatsApp se citește
+acum din `pricing.json` (Furnizor), nu mai e fixă în cod — orice ofertă
+programată apare automat, fără recompilare.
+
 ## v0.6.1 (2026-08-29)
 - **Ghidul PDF redesenat**: copertă cu banner de brand, 3 capturi reale ale
   aplicației (fereastra principală, adăugare aplicație, setări), footer
