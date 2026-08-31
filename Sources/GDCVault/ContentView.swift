@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject private var store = VaultMetadataStore()
     @ObservedObject private var license = LicenseManager.shared
     @ObservedObject private var textScale = TextScaleManager.shared
+    @ObservedObject private var pricing = PricingChecker.shared
     @State private var showActivation = false
     @State private var selectedEntryID: UUID?
     /// Non-nil cât timp se completează o intrare nouă, ÎNCĂ nesalvată —
@@ -96,6 +97,16 @@ struct ContentView: View {
     /// — in proba, arata zilele ramase; dupa expirare, invita la activare.
     /// NU blocheaza nimic singur — vezi gating-ul real pe butonul
     /// "Adauga aplicatie" mai jos (nota de arhitectura din LicenseManager).
+    private var donateLabel: String {
+        let value = pricing.effectivePrice
+        let isWhole = value.truncatingRemainder(dividingBy: 1) == 0
+        let text = isWhole ? String(Int(value)) : String(value)
+        if let promo = pricing.activePromo {
+            return "🔥 \(promo.label): Donează \(text)€ pentru licență"
+        }
+        return "Donează \(text)€ pentru licență"
+    }
+
     private var trialBanner: some View {
         HStack {
             Text(license.isTrialActive
@@ -104,7 +115,7 @@ struct ContentView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("Donează 5€ pentru licență") { showActivation = true }
+            Button(donateLabel) { showActivation = true }
                 .buttonStyle(.plain)
                 .foregroundStyle(.green)
                 .font(.system(size: 11, weight: .semibold))

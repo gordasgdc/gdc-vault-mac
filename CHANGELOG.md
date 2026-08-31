@@ -1,5 +1,17 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.6.4 (2026-08-31) — Aliniere număr de versiune cu Windows
+Fără schimbare de cod față de 0.6.3 — doar bump ca numărul de versiune să
+rămână identic pe Mac și Windows (cerință Cristi, ușurează urmărirea
+build-urilor de test între cele două platforme).
+
+## v0.6.3 (2026-08-31) — Bannerul de probă gratuită arăta suma veche fixă
+Bannerul de sus ("Probă gratuită... Donează X€ pentru licență") mai avea
+suma de 5€ hardcodată, deși ecranul de Activare deja citea prețul dinamic
+din `pricing.json` (v0.6.2) — cele două nu erau sincronizate. Acum
+bannerul citește și el `PricingChecker` și arată eticheta ofertei active
+(ex. "🔥 Ofertă lansare: Donează 9€").
+
 ## v0.6.2 (2026-08-31) — Preț dinamic din Furnizor
 Suma de donație din ecranul de Activare + mesajul WhatsApp se citește
 acum din `pricing.json` (Furnizor), nu mai e fixă în cod — orice ofertă

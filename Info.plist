@@ -9,9 +9,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.gordasgdc.vault</string>
 	<key>CFBundleVersion</key>
-	<string>0.6.2</string>
+	<string>0.6.4</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.6.2</string>
+	<string>0.6.4</string>
 	<key>CFBundleExecutable</key>
 	<string>GDCVault</string>
 	<key>CFBundleIconFile</key>
