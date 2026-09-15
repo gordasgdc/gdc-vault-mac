@@ -18,6 +18,17 @@ public enum LicenseType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Cât de des se plătește un abonament. `nil` pe `billingPeriod` = fără cost urmărit.
+public enum BillingPeriod: String, Codable, CaseIterable, Identifiable {
+    case monthly, yearly
+    public var id: String { rawValue }
+    public var displayName: String { self == .monthly ? "Lunar" : "Anual" }
+    /// Costul normalizat la o lună, ca totalurile să fie comparabile.
+    public func monthlyEquivalent(of amount: Double) -> Double {
+        self == .monthly ? amount : amount / 12
+    }
+}
+
 /// Un asset/pachet cumpărat de la un furnizor (efecte, SFX, LUT-uri) legat
 /// de un folder local de pe disc — parte a fișei unui produs, listă
 /// dinamică (un produs poate avea mai multe asset-uri cumpărate).
@@ -85,6 +96,16 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
     public var expiresAt: Date?          // relevant mai ales pt. .subscription
     public var hasSerial: Bool
 
+    // Cost (2026-09-15) — opțional; `nil` = nu urmărim costul acestui produs.
+    public var priceAmount: Double?
+    public var billingPeriod: BillingPeriod?
+
+    // Reminder de reînnoire (2026-09-15). Zilele sunt o listă, nu un singur
+    // prag: un abonament anual scump merită avertizat din timp (30 z) ȘI cu
+    // o zi-două înainte, când chiar acționezi.
+    public var reminderEnabled: Bool
+    public var reminderDaysBefore: [Int]
+
     // Resurse
     public var downloadURL: String?
     public var updateURL: String?
@@ -109,6 +130,10 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         licenseType: LicenseType = .none,
         expiresAt: Date? = nil,
         hasSerial: Bool = false,
+        priceAmount: Double? = nil,
+        billingPeriod: BillingPeriod? = nil,
+        reminderEnabled: Bool = false,
+        reminderDaysBefore: [Int] = [30, 7, 3],
         downloadURL: String? = nil,
         updateURL: String? = nil,
         notes: String? = nil,
@@ -124,6 +149,10 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         self.licenseType = licenseType
         self.expiresAt = expiresAt
         self.hasSerial = hasSerial
+        self.priceAmount = priceAmount
+        self.billingPeriod = billingPeriod
+        self.reminderEnabled = reminderEnabled
+        self.reminderDaysBefore = reminderDaysBefore
         self.downloadURL = downloadURL
         self.updateURL = updateURL
         self.notes = notes
@@ -135,7 +164,8 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case id, name, loginURL, username, hasPassword, licenseType, expiresAt,
              hasSerial, downloadURL, updateURL, notes, attachments, purchasedAssets,
-             additionalLogins
+             additionalLogins, priceAmount, billingPeriod, reminderEnabled,
+             reminderDaysBefore
     }
 
     public init(from decoder: Decoder) throws {
@@ -154,6 +184,10 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         attachments = try c.decodeIfPresent([AttachmentRef].self, forKey: .attachments) ?? []
         purchasedAssets = try c.decodeIfPresent([PurchasedAsset].self, forKey: .purchasedAssets) ?? []
         additionalLogins = try c.decodeIfPresent([LoginCredential].self, forKey: .additionalLogins) ?? []
+        priceAmount = try c.decodeIfPresent(Double.self, forKey: .priceAmount)
+        billingPeriod = try c.decodeIfPresent(BillingPeriod.self, forKey: .billingPeriod)
+        reminderEnabled = try c.decodeIfPresent(Bool.self, forKey: .reminderEnabled) ?? false
+        reminderDaysBefore = try c.decodeIfPresent([Int].self, forKey: .reminderDaysBefore) ?? [30, 7, 3]
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -172,6 +206,10 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         try c.encode(attachments, forKey: .attachments)
         try c.encode(purchasedAssets, forKey: .purchasedAssets)
         try c.encode(additionalLogins, forKey: .additionalLogins)
+        try c.encodeIfPresent(priceAmount, forKey: .priceAmount)
+        try c.encodeIfPresent(billingPeriod, forKey: .billingPeriod)
+        try c.encode(reminderEnabled, forKey: .reminderEnabled)
+        try c.encode(reminderDaysBefore, forKey: .reminderDaysBefore)
     }
 
     /// Zile pana la expirare; negativ daca a expirat deja. nil = nu expira/nu se aplica.
@@ -180,4 +218,27 @@ public struct VaultEntry: Identifiable, Codable, Equatable {
         let seconds = expiresAt.timeIntervalSinceNow
         return Int((seconds / 86400).rounded(.down))
     }
+
+    /// Costul lunar echivalent, pentru totalul din sidebar. nil = fără cost.
+    public var monthlyCost: Double? {
+        guard let priceAmount, let billingPeriod else { return nil }
+        return billingPeriod.monthlyEquivalent(of: priceAmount)
+    }
+
+    public var priceDisplay: String? {
+        guard let priceAmount, let billingPeriod else { return nil }
+        let value = priceAmount.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(priceAmount)) : String(format: "%.2f", priceAmount)
+        return "\(value) € / \(billingPeriod.displayName.lowercased())"
+    }
+}
+
+/// True dacă textul e o adresă web pe care o putem deschide. Verificarea NU e
+/// doar „începe cu http": un `URL(string:)` valid dar fără gazdă (ex.
+/// `https://`) ar deschide o fereastră goală de browser.
+public func isLaunchableURL(_ text: String?) -> Bool {
+    guard let raw = text?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
+          raw.lowercased().hasPrefix("http://") || raw.lowercased().hasPrefix("https://"),
+          let url = URL(string: raw), let host = url.host, !host.isEmpty else { return false }
+    return true
 }

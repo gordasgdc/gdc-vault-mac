@@ -1,5 +1,21 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.7.0 (2026-09-15) — Abonamente, linkuri și parole
+
+### Added
+- **Buton de deschidere** lângă fiecare link (login, descărcare, actualizări,
+  link de asset) — se deschide direct în browserul tău. Butonul e activ doar
+  când adresa chiar poate fi deschisă.
+- **Reminder de reînnoire**: notificare pe Mac cu 30, 7 și 3 zile înainte de
+  expirare, plus **export în calendar (.ics)** ca să-l ai și pe telefon.
+- **Insignă de expirare** în listă — portocaliu sub 30 de zile, roșu sub 7.
+- **Generator de parole** lângă câmpul de parolă, cu lungime și tipuri de
+  caractere configurabile.
+- **Copiere rapidă** a utilizatorului și parolei direct din listă;
+  clipboard-ul se golește singur după 45 de secunde.
+- **Cost opțional** per abonament (lunar/anual) și **totalul lunar** în bara
+  laterală.
+
 ## v0.6.4 (2026-08-31) — Aliniere număr de versiune cu Windows
 Fără schimbare de cod față de 0.6.3 — doar bump ca numărul de versiune să
 rămână identic pe Mac și Windows (cerință Cristi, ușurează urmărirea

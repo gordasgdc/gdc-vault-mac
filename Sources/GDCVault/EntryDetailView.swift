@@ -44,6 +44,10 @@ struct EntryDetailView: View {
     @State private var attachments: [AttachmentRef]
     @State private var purchasedAssets: [PurchasedAsset]
     @State private var additionalLogins: [CredentialRow]
+    @State private var reminderEnabled: Bool
+    @State private var reminderDaysBefore: [Int]
+    @State private var priceText: String
+    @State private var billingPeriod: BillingPeriod?
     private let originalCredentialIDs: Set<UUID>
 
     private let entryID: UUID
@@ -68,6 +72,12 @@ struct EntryDetailView: View {
         _notes = State(initialValue: initialEntry.notes ?? "")
         _attachments = State(initialValue: initialEntry.attachments)
         _purchasedAssets = State(initialValue: initialEntry.purchasedAssets)
+        _reminderEnabled = State(initialValue: initialEntry.reminderEnabled)
+        _reminderDaysBefore = State(initialValue: initialEntry.reminderDaysBefore)
+        _priceText = State(initialValue: initialEntry.priceAmount.map {
+            $0.truncatingRemainder(dividingBy: 1) == 0 ? String(Int($0)) : String($0)
+        } ?? "")
+        _billingPeriod = State(initialValue: initialEntry.billingPeriod)
 
         let entryID = initialEntry.id
         _additionalLogins = State(initialValue: initialEntry.additionalLogins.map { cred in
@@ -103,9 +113,12 @@ struct EntryDetailView: View {
 
                 GroupBox("Credențiale") {
                     VStack(alignment: .leading, spacing: 10) {
-                        TextField("URL login", text: $loginURL).textFieldStyle(.roundedBorder)
+                        HStack(spacing: 6) {
+                            TextField("URL login", text: $loginURL).textFieldStyle(.roundedBorder)
+                            URLLaunchButton(urlText: loginURL)
+                        }
                         TextField("Utilizator", text: $username).textFieldStyle(.roundedBorder)
-                        SecretField(placeholder: "Parolă", value: $password)
+                        SecretField(placeholder: "Parolă", value: $password, showsGenerator: true)
 
                         if !additionalLogins.isEmpty {
                             Divider().padding(.vertical, 2)
@@ -122,9 +135,12 @@ struct EntryDetailView: View {
                                     }
                                     .buttonStyle(.plain)
                                 }
-                                TextField("URL login", text: $login.loginURL).textFieldStyle(.roundedBorder)
+                                HStack(spacing: 6) {
+                                    TextField("URL login", text: $login.loginURL).textFieldStyle(.roundedBorder)
+                                    URLLaunchButton(urlText: login.loginURL)
+                                }
                                 TextField("Utilizator", text: $login.username).textFieldStyle(.roundedBorder)
-                                SecretField(placeholder: "Parolă", value: $login.password)
+                                SecretField(placeholder: "Parolă", value: $login.password, showsGenerator: true)
                             }
                             .padding(8)
                             .background(Color.secondary.opacity(0.06))
@@ -148,7 +164,43 @@ struct EntryDetailView: View {
 
                         Toggle("Are dată de expirare", isOn: $hasExpiry)
                         if hasExpiry {
-                            DatePicker("Expiră la", selection: $expiresAt, displayedComponents: .date)
+                            DatePicker("Data reînnoirii / expirare", selection: $expiresAt, displayedComponents: .date)
+
+                            Toggle("Trimite notificare înainte de expirare", isOn: $reminderEnabled)
+                            if reminderEnabled {
+                                HStack(spacing: 10) {
+                                    ForEach([30, 7, 3], id: \.self) { days in
+                                        Toggle("\(days) z", isOn: Binding(
+                                            get: { reminderDaysBefore.contains(days) },
+                                            set: { on in
+                                                if on { reminderDaysBefore.append(days) }
+                                                else { reminderDaysBefore.removeAll { $0 == days } }
+                                            }))
+                                        .toggleStyle(.checkbox)
+                                    }
+                                    Spacer()
+                                    Button {
+                                        RenewalReminders.exportICS(for: snapshotForReminders())
+                                    } label: {
+                                        Label("Export în calendar (.ics)", systemImage: "calendar.badge.plus")
+                                    }
+                                    .help("Se deschide în Calendar și se sincronizează pe telefon")
+                                }
+                                .font(.caption)
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            TextField("Cost (opțional)", text: $priceText)
+                                .textFieldStyle(.roundedBorder).frame(width: 120)
+                            Picker("", selection: $billingPeriod) {
+                                Text("—").tag(BillingPeriod?.none)
+                                ForEach(BillingPeriod.allCases) { p in
+                                    Text(p.displayName).tag(BillingPeriod?.some(p))
+                                }
+                            }
+                            .labelsHidden().frame(width: 110)
+                            Spacer()
                         }
 
                         SecretField(placeholder: "Cheie de serie", value: $serial)
@@ -158,8 +210,14 @@ struct EntryDetailView: View {
 
                 GroupBox("Resurse") {
                     VStack(alignment: .leading, spacing: 10) {
-                        TextField("Link descărcare", text: $downloadURL).textFieldStyle(.roundedBorder)
-                        TextField("Link actualizări (opțional)", text: $updateURL).textFieldStyle(.roundedBorder)
+                        HStack(spacing: 6) {
+                            TextField("Link descărcare", text: $downloadURL).textFieldStyle(.roundedBorder)
+                            URLLaunchButton(urlText: downloadURL)
+                        }
+                        HStack(spacing: 6) {
+                            TextField("Link actualizări (opțional)", text: $updateURL).textFieldStyle(.roundedBorder)
+                            URLLaunchButton(urlText: updateURL)
+                        }
                         Text("Notițe").font(.caption).foregroundStyle(.secondary)
                         TextEditor(text: $notes)
                             .font(.system(size: 13))
@@ -202,11 +260,14 @@ struct EntryDetailView: View {
                                         set: { asset.licenseKey = $0.isEmpty ? nil : $0 }
                                     ))
                                     .textFieldStyle(.roundedBorder)
+                                    HStack(spacing: 6) {
                                     TextField("Link descărcare", text: Binding(
                                         get: { asset.downloadURL ?? "" },
                                         set: { asset.downloadURL = $0.isEmpty ? nil : $0 }
                                     ))
                                     .textFieldStyle(.roundedBorder)
+                                    URLLaunchButton(urlText: asset.downloadURL ?? "")
+                                    }
                                 }
                             }
                             .padding(8)
@@ -284,6 +345,10 @@ struct EntryDetailView: View {
             username: username.isEmpty ? nil : username,
             licenseType: licenseType,
             expiresAt: hasExpiry ? expiresAt : nil,
+            priceAmount: parsedPrice,
+            billingPeriod: parsedPrice == nil ? nil : (billingPeriod ?? .monthly),
+            reminderEnabled: hasExpiry && reminderEnabled,
+            reminderDaysBefore: reminderDaysBefore.sorted(by: >),
             downloadURL: downloadURL.isEmpty ? nil : downloadURL,
             updateURL: updateURL.isEmpty ? nil : updateURL,
             notes: notes.isEmpty ? nil : notes,
@@ -334,6 +399,32 @@ struct EntryDetailView: View {
 
         store.upsert(entry)
         onSaved(entry)
+
+        // Notificarile se reprogrameaza DUPA salvare, pe intrarea salvata:
+        // altfel ar folosi datele din formular, care se pot schimba pana la
+        // apasarea butonului.
+        let saved = entry
+        Task { await RenewalReminders.reschedule(for: saved) }
+    }
+
+    /// Virgula zecimala, cum o tasteaza un utilizator roman, nu doar punctul.
+    private var parsedPrice: Double? {
+        let raw = priceText.replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespaces)
+        guard !raw.isEmpty, let value = Double(raw), value > 0 else { return nil }
+        return value
+    }
+
+    /// Intrarea asa cum arata ACUM in formular — pentru exportul .ics, care
+    /// trebuie sa reflecte ce vezi pe ecran, nu ultima valoare salvata.
+    private func snapshotForReminders() -> VaultEntry {
+        VaultEntry(id: entryID, name: name,
+                   licenseType: licenseType,
+                   expiresAt: hasExpiry ? expiresAt : nil,
+                   priceAmount: parsedPrice,
+                   billingPeriod: parsedPrice == nil ? nil : (billingPeriod ?? .monthly),
+                   reminderEnabled: reminderEnabled,
+                   reminderDaysBefore: reminderDaysBefore.sorted(by: >))
     }
 
     /// NSOpenPanel in loc de `.fileImporter` SwiftUI — acelasi motiv ca

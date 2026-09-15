@@ -27,6 +27,15 @@ struct ContentView: View {
     /// Resurse și asset-uri cumpărate. Vezi FuzzySearch.swift.
     @State private var searchText = ""
 
+    /// Totalul lunar echivalent: abonamentele anuale se impart la 12, altfel
+    /// suma ar sari haotic in functie de cate plati anuale sunt in listă.
+    private var monthlyTotal: String? {
+        let costs = store.entries.compactMap(\.monthlyCost)
+        guard !costs.isEmpty else { return nil }
+        let monthly = costs.reduce(0, +)
+        return String(format: "%.0f €/lună · %.0f €/an", monthly, monthly * 12)
+    }
+
     private var filteredEntries: [VaultEntry] {
         store.entries.filter { $0.matchesSearch(searchText) }
     }
@@ -206,6 +215,17 @@ struct ContentView: View {
                 if selectedEntryID != nil { draftEntry = nil }
             }
 
+            if let total = monthlyTotal {
+                Divider()
+                HStack {
+                    Label("Cost abonamente", systemImage: "eurosign.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Text(total).font(.caption).fontWeight(.semibold).monospacedDigit()
+                }
+                .padding(.horizontal, 12).padding(.vertical, 4)
+            }
+
             Divider()
             ProfileSidebarBlock(onActivateTapped: { showActivation = true })
             Divider()
@@ -287,6 +307,7 @@ struct ContentView: View {
 
 private struct VaultRow: View {
     let entry: VaultEntry
+    @State private var isHovered = false
 
     var body: some View {
         HStack {
@@ -301,12 +322,37 @@ private struct VaultRow: View {
                 }
             }
             Spacer()
-            if let days = entry.daysUntilExpiry {
-                Text(days < 0 ? "Expirat" : "\(days)z")
-                    .font(.caption)
-                    .foregroundStyle(days < 0 ? .red : (days <= 14 ? .orange : .secondary))
+
+            // Copiere rapida direct din lista, fara sa deschizi fisa.
+            // Apar la hover ca sa nu incarce randul permanent.
+            if isHovered {
+                if entry.username?.isEmpty == false {
+                    Button {
+                        Clipboard.copy(entry.username ?? "")
+                    } label: { Image(systemName: "person") }
+                    .buttonStyle(.borderless).help("Copiază utilizatorul")
+                }
+                if entry.hasPassword {
+                    Button {
+                        Clipboard.copy((try? VaultKeychainStore.read(forEntryID: entry.id, slot: .password)) ?? "")
+                    } label: { Image(systemName: "key") }
+                    .buttonStyle(.borderless).help("Copiază parola (clipboard-ul se golește în 45 s)")
+                }
+            }
+
+            if let days = entry.daysUntilExpiry, days <= 30 {
+                // Sub 30 de zile primeste fundal, nu doar text colorat: in
+                // lista, culoarea textului singura se pierde printre randuri.
+                Text(days < 0 ? "Expirat" : "\(days) \(days == 1 ? "zi" : "zile")")
+                    .font(.caption2).fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(Capsule().fill(days <= 7 ? Color.red : Color.orange))
+            } else if let days = entry.daysUntilExpiry {
+                Text("\(days)z").font(.caption).foregroundStyle(.secondary)
             }
         }
+        .onHover { isHovered = $0 }
         .padding(.vertical, 3)
     }
 }
