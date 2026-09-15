@@ -1,5 +1,13 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.7.1 (2026-09-15) — Avertisment la rulare din Downloads
+
+### Fixed
+- Dacă aplicația e pornită din afara folderului Aplicații (ex. direct din
+  arhiva descărcată), acum te întreabă dacă vrea s-o mute. Fără asta,
+  actualizările se instalau în Aplicații, dar tu deschideai mai departe copia
+  veche — și părea că actualizarea nu funcționează.
+
 ## v0.7.0 (2026-09-15) — Abonamente, linkuri și parole
 
 ### Added

@@ -6,6 +6,10 @@ struct GDCVaultApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Verificarea locatiei ruleaza la aparitia ferestrei, nu in
+                // `init`: acolo NSApp nu e inca pornit, iar alerta n-ar avea
+                // unde sa se afiseze.
+                .onAppear { AppMover.promptIfNeeded() }
         }
         .windowResizability(.contentSize)
         .commands {
