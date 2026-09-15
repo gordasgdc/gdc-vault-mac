@@ -312,7 +312,10 @@ private struct VaultRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.name).font(.headline)
+                // Si la afisare: intrarile salvate INAINTE de taierea din
+                // save() raman in entries.json cu newline-ul lor.
+                Text(entry.name.trimmingCharacters(in: .whitespacesAndNewlines))
+                    .font(.headline).lineLimit(1)
                 HStack(spacing: 4) {
                     if entry.hasPassword { Image(systemName: "person.badge.key.fill").font(.caption2) }
                     if entry.hasSerial { Image(systemName: "key.fill").font(.caption2) }

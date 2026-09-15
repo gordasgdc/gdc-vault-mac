@@ -340,7 +340,11 @@ struct EntryDetailView: View {
     private func save() {
         var entry = VaultEntry(
             id: entryID,
-            name: name,
+            // BUG REAL (2026-09-15): un nume lipit din browser poate incepe
+            // cu newline ("\ncamarenacolor.com"). In lista, SwiftUI randa
+            // prima linie GOALA, iar randul parea fara nume. Taiem la
+            // salvare, ca datele sa fie curate, nu doar afisarea.
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             loginURL: loginURL.isEmpty ? nil : loginURL,
             username: username.isEmpty ? nil : username,
             licenseType: licenseType,

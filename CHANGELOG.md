@@ -1,5 +1,15 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.7.2 (2026-09-15) — Nume în listă și mesaj corect la verificare
+
+### Fixed
+- **Intrările apăreau fără nume în lista din stânga** dacă numele fusese lipit
+  cu un rând gol la început (cum se întâmplă când copiezi dintr-un browser).
+  Numele se curăță acum la salvare și la afișare.
+- **„Caută actualizări" spunea să-ți verifici conexiunea** chiar și când
+  internetul funcționa. Dacă GitHub limitează temporar verificările de pe
+  conexiunea ta, mesajul spune asta și îți arată ora la care poți reîncerca.
+
 ## v0.7.1 (2026-09-15) — Avertisment la rulare din Downloads
 
 ### Fixed

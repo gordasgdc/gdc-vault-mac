@@ -51,6 +51,13 @@ enum UpdateChecker {
     private enum Result {
         case upToDate
         case newVersion(String, URL)
+        /// GitHub a refuzat cererea fiindca s-au facut prea multe verificari
+        /// de la aceeasi adresa IP. Stare DISTINCTA de `.error`: internetul
+        /// merge, iar sfatul "verifica-ti conexiunea" ar trimite omul sa
+        /// caute o problema inexistenta. Se intampla real intr-un birou sau
+        /// studio, unde mai multi oameni ies prin acelasi IP si impart
+        /// limita de 60 de cereri/ora pentru cererile neautentificate.
+        case rateLimited(Date?)
         case error
     }
 
@@ -59,7 +66,18 @@ enum UpdateChecker {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200,
+            guard let http = response as? HTTPURLResponse else { return .error }
+
+            // 403/429 cu `x-ratelimit-remaining: 0` = limita atinsa. Un 403
+            // fara antetul asta e altceva (ex. acces interzis) si ramane
+            // eroare obisnuita.
+            if http.statusCode == 403 || http.statusCode == 429,
+               http.value(forHTTPHeaderField: "x-ratelimit-remaining") == "0" {
+                let reset = (http.value(forHTTPHeaderField: "x-ratelimit-reset")).flatMap(Double.init)
+                return .rateLimited(reset.map { Date(timeIntervalSince1970: $0) })
+            }
+
+            guard http.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let tag = json["tag_name"] as? String else {
                 return .error
@@ -112,6 +130,18 @@ enum UpdateChecker {
             if response == .alertFirstButtonReturn {
                 Task { await SelfUpdater.downloadAndInstall(pkgURL: pkgURL, version: version) }
             }
+        case .rateLimited(let resetAt):
+            alert.messageText = "Prea multe verificări"
+            let when = resetAt.map { date -> String in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "HH:mm"
+                return " Încearcă din nou după ora \(formatter.string(from: date))."
+            } ?? " Încearcă din nou peste câteva minute."
+            alert.informativeText = "GitHub a limitat temporar verificările de actualizare de pe această conexiune."
+                + when
+                + " Conexiunea ta funcționează — nu ai ce repara."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
         case .error:
             alert.messageText = "Verificarea a eșuat"
             alert.informativeText = "Nu am putut verifica dacă există o versiune nouă. Verifică-ți conexiunea la internet și încearcă din nou."
