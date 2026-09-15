@@ -86,8 +86,10 @@ struct EntryDetailView: View {
                 label: cred.label,
                 loginURL: cred.loginURL ?? "",
                 username: cred.username ?? "",
+                // Prin VaultSession: citit o data per sesiune, apoi din
+                // cache — fara cerere de parola de breloc la fiecare camp.
                 password: cred.hasPassword
-                    ? ((try? VaultKeychainStore.readCredentialSecret(forEntryID: entryID, credentialID: cred.id)) ?? "") : ""
+                    ? (VaultSession.shared.credentialSecret(forEntryID: entryID, credentialID: cred.id) ?? "") : ""
             )
         })
         originalCredentialIDs = Set(initialEntry.additionalLogins.map(\.id))
@@ -99,9 +101,9 @@ struct EntryDetailView: View {
         // exact ca username/loginURL — SecretField (eye-toggle + copiere)
         // o afiseaza, ascunsa implicit, dar niciodata inaccesibila.
         _password = State(initialValue: initialEntry.hasPassword
-            ? ((try? VaultKeychainStore.read(forEntryID: initialEntry.id, slot: .password)) ?? "") : "")
+            ? (VaultSession.shared.secret(forEntryID: initialEntry.id, slot: .password) ?? "") : "")
         _serial = State(initialValue: initialEntry.hasSerial
-            ? ((try? VaultKeychainStore.read(forEntryID: initialEntry.id, slot: .serial)) ?? "") : "")
+            ? (VaultSession.shared.secret(forEntryID: initialEntry.id, slot: .serial) ?? "") : "")
     }
 
     var body: some View {
@@ -401,6 +403,9 @@ struct EntryDetailView: View {
             try? VaultKeychainStore.deleteCredentialSecret(forEntryID: entryID, credentialID: removedID)
         }
 
+        // Cache-ul trebuie invalidat DUPA scriere, altfel urmatoarea
+        // deschidere a fisei ar arata parola veche.
+        VaultSession.shared.invalidate(entryID: entryID)
         store.upsert(entry)
         onSaved(entry)
 

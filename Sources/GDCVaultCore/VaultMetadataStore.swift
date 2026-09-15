@@ -12,6 +12,12 @@ import Foundation
 public final class VaultMetadataStore: ObservableObject {
     @Published public private(set) var entries: [VaultEntry] = []
 
+    /// Copia gasita la pornire cand fisierul principal lipsea sau era
+    /// necitibil. UI-ul o foloseste ca sa OFERE restaurarea — nu restauram
+    /// automat: o suprascriere tacuta a datelor e exact ce nu vrei sa faca o
+    /// aplicatie de tip seif.
+    @Published public private(set) var recoverableBackup: (url: URL, entries: [VaultEntry])?
+
     private let fileURL: URL
 
     public init() {
@@ -20,16 +26,58 @@ public final class VaultMetadataStore: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.fileURL = dir.appendingPathComponent("entries.json")
         load()
+
+        // Copie la fiecare pornire, cu datele deja incarcate. Daca lipsesc,
+        // `backup` nu scrie nimic (vezi AutoBackupService).
+        AutoBackupService.backup(entries: entries)
     }
 
     private func load() {
+        let data = try? Data(contentsOf: fileURL)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        if let data, let decoded = try? decoder.decode([VaultEntry].self, from: data), !decoded.isEmpty {
+            entries = decoded
+            return
+        }
+
+        // Fisier lipsa, gol sau necitibil (mutare pe alt disc, folder nou,
+        // JSON trunchiat de o inchidere brusca). Cautam o copie buna, dar NU
+        // o aplicam singuri — vezi `recoverableBackup`.
+        entries = []
+        if let candidate = AutoBackupService.latestRestorable() {
+            recoverableBackup = candidate
+        }
+    }
+
+    /// Aplica o copie gasita la pornire. Inainte de suprascriere face inca o
+    /// copie a starii curente — daca restaurarea e o greseala, se poate
+    /// intoarce.
+    public func restore(from backup: (url: URL, entries: [VaultEntry])) {
+        AutoBackupService.backup(entries: entries)
+        entries = backup.entries
+        recoverableBackup = nil
+        save()
+    }
+
+    public func dismissRecovery() { recoverableBackup = nil }
+
+    private func backupCurrentFile() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        entries = (try? decoder.decode([VaultEntry].self, from: data)) ?? []
+        guard let previous = try? decoder.decode([VaultEntry].self, from: data) else { return }
+        AutoBackupService.backup(entries: previous)
     }
 
     private func save() {
+        // Copie INAINTE de scriere, din ce e ACUM PE DISC — nu din `entries`,
+        // care e deja starea noua (upsert/delete modifica lista, apoi cheama
+        // save). Diferenta conteaza: o copie a starii noi n-ar folosi la
+        // nimic la o revenire, fiindca e exact ce vrei sa anulezi.
+        backupCurrentFile()
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

@@ -52,14 +52,19 @@ public enum VaultKeychainStore {
         guard status == errSecSuccess else { throw StoreError.unhandled(status) }
     }
 
-    public static func read(forEntryID id: UUID, slot: SecretSlot) throws -> String? {
-        let query: [String: Any] = [
+    /// `context`: un `LAContext` deja autentificat (vezi VaultSession).
+    /// Trecut prin `kSecUseAuthenticationContext`, Keychain-ul nu mai cere
+    /// parola brelocului la fiecare item citit.
+    public static func read(forEntryID id: UUID, slot: SecretSlot, context: Any? = nil) throws -> String? {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account(for: id, slot: slot),
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
+        if let context { query[kSecUseAuthenticationContext as String] = context }
+
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }
@@ -116,14 +121,16 @@ public enum VaultKeychainStore {
         guard status == errSecSuccess else { throw StoreError.unhandled(status) }
     }
 
-    public static func readCredentialSecret(forEntryID entryID: UUID, credentialID: UUID) throws -> String? {
-        let query: [String: Any] = [
+    public static func readCredentialSecret(forEntryID entryID: UUID, credentialID: UUID, context: Any? = nil) throws -> String? {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: credentialAccount(entryID: entryID, credentialID: credentialID),
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
+        if let context { query[kSecUseAuthenticationContext as String] = context }
+
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }

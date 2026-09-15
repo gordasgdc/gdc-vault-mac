@@ -1,5 +1,18 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.8.0 (2026-09-15) — Touch ID și copii de siguranță automate
+
+### Added
+- **Deblocare cu Touch ID** (sau parola Mac-ului) o singură dată la pornire.
+  Parolele se citesc apoi o singură dată fiecare și rămân în memorie pe durata
+  sesiunii — gata cu cererea repetată a parolei de breloc.
+- **Copii de siguranță automate**, criptate, în
+  `~/Library/Application Support/GDCVault/Backups/`: la fiecare pornire și
+  înainte de fiecare salvare. Se păstrează ultimele 10.
+- **Recuperare automată**: dacă la pornire fișierul cu aplicațiile tale
+  lipsește sau nu poate fi citit, aplicația găsește cea mai recentă copie bună
+  și îți oferă restaurarea.
+
 ## v0.7.2 (2026-09-15) — Nume în listă și mesaj corect la verificare
 
 ### Fixed

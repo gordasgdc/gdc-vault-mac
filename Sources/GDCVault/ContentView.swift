@@ -99,7 +99,38 @@ struct ContentView: View {
                 showUpdateAlert = true
             }
             Task { await license.refreshRevocation() }
+
+            // Deblocare o singura data per sesiune (Touch ID sau parola
+            // Mac-ului). Rezultatul nu blocheaza interfata: chiar daca
+            // autentificarea e refuzata, aplicatia ramane utilizabila —
+            // Keychain-ul isi cere singur acordul la prima citire, ca pana
+            // acum. Scopul e sa NU-l mai ceara de zeci de ori.
+            Task { await VaultSession.shared.unlock() }
         }
+        .alert("Datele seifului lipsesc", isPresented: Binding(
+            get: { store.recoverableBackup != nil },
+            set: { if !$0 { store.dismissRecovery() } }
+        )) {
+            Button("Restaurează") {
+                if let backup = store.recoverableBackup { store.restore(from: backup) }
+            }
+            Button("Nu acum", role: .cancel) { store.dismissRecovery() }
+        } message: {
+            Text(recoveryMessage)
+        }
+    }
+
+    /// Mesajul de recuperare: spune CE se restaureaza si DIN CE copie, ca
+    /// decizia sa fie informata, nu un "da/nu" pe nevazute.
+    private var recoveryMessage: String {
+        guard let backup = store.recoverableBackup else { return "" }
+        let name = backup.url.lastPathComponent
+            .replacingOccurrences(of: "vault_backup_", with: "")
+            .replacingOccurrences(of: ".enc", with: "")
+        return "Fișierul cu aplicațiile tale lipsește sau nu a putut fi citit. "
+            + "Am găsit o copie de siguranță cu \(backup.entries.count) "
+            + "\(backup.entries.count == 1 ? "aplicație" : "aplicații") (\(name)). "
+            + "Parolele și cheile de serie sunt în Keychain și nu se pierd."
     }
 
     /// Banner discret, mereu vizibil cat timp NU exista o licenta activa
@@ -337,7 +368,7 @@ private struct VaultRow: View {
                 }
                 if entry.hasPassword {
                     Button {
-                        Clipboard.copy((try? VaultKeychainStore.read(forEntryID: entry.id, slot: .password)) ?? "")
+                        Clipboard.copy(VaultSession.shared.secret(forEntryID: entry.id, slot: .password) ?? "")
                     } label: { Image(systemName: "key") }
                     .buttonStyle(.borderless).help("Copiază parola (clipboard-ul se golește în 45 s)")
                 }
