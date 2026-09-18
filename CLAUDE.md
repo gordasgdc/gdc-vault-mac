@@ -305,6 +305,9 @@ consultă acum și starea de revocare (fail-open). Aceeași migrare SQL
 - Neverificat: repararea pe loc la GDC Vault (verificată pe Farul, DataMover, MediaFlow — același cod) și calea admin (verificată pe DataMover, MediaFlow). Cu SIP activ (Regula 42) — calea nu folosește
   nimic dependent de SIP, dar n-a rulat pe un astfel de Mac.
 - Nepublicat: `update.json`/release rămân pentru scriptul de release.
+- **[COMPLETARE 2026-09-19] Publicat**: release `v0.8.1` (pkg versionat + stabil +
+  `GDCVault-Mac.zip` cu 3 fișiere), pachet `Notarized Developer ID`;
+  `releases/latest/download/*` → 200 pe `v0.8.1`, API-ul GitHub vede `v0.8.1`.
 
 ### Completări specifice acestui repo, mutate din fosta Partea 1 (2026-09-18)
 
