@@ -80,6 +80,8 @@ remove_if_exists "$HOME/Library/Caches/$BUNDLE_ID"
 defaults delete "$BUNDLE_ID" 2>/dev/null || true
 remove_if_exists "$HOME/Library/Preferences/$BUNDLE_ID.plist"
 remove_if_exists "$HOME/Library/Logs/GDC Vault"
+remove_if_exists "$HOME/Library/Logs/GDCVault.log"
+remove_if_exists "$HOME/Library/Logs/GDCVault.log.1"
 remove_if_exists "$HOME/Library/Saved Application State/$BUNDLE_ID.savedState"
 
 echo "[+] Fisiere sterse."

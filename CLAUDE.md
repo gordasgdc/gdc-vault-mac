@@ -287,6 +287,25 @@ ID în sidebar, sub lista de intrări). `LicenseManager.isUnlocked`
 consultă acum și starea de revocare (fail-open). Aceeași migrare SQL
 (`is_license_revoked` RPC) ca GDC Plugin Manager — niciun tabel nou.
 
+## Etapa 2026-09-19 — v0.8.1: AppMover cu App Translocation
+
+- `AppMover.swift` portat din GDC Firewall (Regula 40): locația se judecă
+  după original (`SecTranslocateCreateOriginalPathForURL`), copia din
+  `/Applications` primește carantina FĂRĂ bitul 0x0080 (carantina rămâne),
+  o instalare deja izolată se repară pe loc (doar atributul + repornire) —
+  niciodată copiere peste sine sau copia instalată la Coș. `~/Applications`
+  rămâne acceptat (Regula 18). Față de referință: carantina se ia din
+  original; după copiere se verifică că bitul a dispărut (altfel eroare, nu
+  buclă); izolată fără bit = nu repornește (fără buclă).
+- `DiagnosticLog.swift` nou (Regula 39) → `~/Library/Logs/GDCVault.log` +
+  unified log; `scripts/logs.sh`; dezinstalatorul șterge și logul.
+- Test live 2026-09-19, macOS 26.6.2, Mac de dezvoltare (SIP dezactivat):
+  build notarizat + stapled, zip cu carantină `0083;…;Safari`, dezarhivat cu
+  Archive Utility, pornit din `~/Downloads`. Verificat: izolare detectată, instanța 0.8.0 care rula închisă, copiere fără admin (copie a utilizatorului), carantină `0043`, original la Coș, repornit neizolat din `/Applications`, fără prompt la a doua pornire.
+- Neverificat: repararea pe loc la GDC Vault (verificată pe Farul, DataMover, MediaFlow — același cod) și calea admin (verificată pe DataMover, MediaFlow). Cu SIP activ (Regula 42) — calea nu folosește
+  nimic dependent de SIP, dar n-a rulat pe un astfel de Mac.
+- Nepublicat: `update.json`/release rămân pentru scriptul de release.
+
 ### Completări specifice acestui repo, mutate din fosta Partea 1 (2026-09-18)
 
 Păstrate verbatim. Regula generală la care se referă fiecare e în
