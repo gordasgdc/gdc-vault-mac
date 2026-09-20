@@ -1,5 +1,11 @@
 # Changelog — GDC Vault (Mac)
 
+## v0.9.0 (2026-09-20) — Descărcare .dmg și actualizare automată
+
+### Changed
+- **Descărcare ca imagine .dmg** semnată și verificată de Apple, în loc de arhivă .zip cu scripturi.
+- **Actualizarea automată** instalează direct noua versiune din .dmg (verifică versiunea și semnătura), fără browser.
+
 ## v0.8.1 (2026-09-19) — Mutare în Aplicații fiabilă
 
 ### Fixed

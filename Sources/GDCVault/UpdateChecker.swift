@@ -89,7 +89,8 @@ enum UpdateChecker {
             // build_installer.sh la fiecare release - vezi Regula 17
             // (excepția numelui stabil, necesară pentru acest mecanism).
             let assets = json["assets"] as? [[String: Any]] ?? []
-            let pkgAsset = assets.first { ($0["name"] as? String) == "GDCVault.pkg" }
+            let pkgAsset = assets.first { ($0["name"] as? String) == "GDCVault.dmg" }
+                ?? assets.first { ($0["name"] as? String) == "GDCVault.pkg" }
             guard let urlString = pkgAsset?["browser_download_url"] as? String, let pkgURL = URL(string: urlString) else {
                 // Release fara asset .pkg (ex. doar zip) - fallback la pagina,
                 // mai bine decat sa esueze silentios.

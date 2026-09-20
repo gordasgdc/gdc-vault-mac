@@ -321,3 +321,9 @@ Păstrate verbatim. Regula generală la care se referă fiecare e în
 **Regula 21:**
 
 **Status acest repo (2026-08-28, verificat): NU SE APLICA.** Auditat la cererea lui Cristi — GDCVault gestioneaza parole/licente/notite, fara fisiere mari; "Asset-urile cumparate" sunt DOAR referinte catre foldere locale (deschise in Finder), nu copiate/procesate de aplicatie. Regula 21 nu se aplica decat daca se adauga vreodata o functie proprie de copiere/backup de fisiere.
+
+### Jurnal 2026-09-20 — v0.9.0, distribuție DMG (Regula 45 / K)
+- `release_dmg.sh` (port din CursorPro): build Developer ID → notarizare + staple → DMG semnat/notarizat/stapled, verificat cu `spctl` și după montare → `dist/GDCVault-0.9.0.dmg` (+ `GDCVault.dmg` stabil). `.zip`/`.command` nu se mai produc; `.pkg` = doar canal legacy updater (≤0.8.1).
+- Self-Updater: instalează `.dmg` (versiune + `codesign --verify`); `UpdateChecker` preferă `GDCVault.dmg`, cade pe `.pkg`.
+- Keychain (`VaultKeychainStore`, service `com.gordas.gdcvault`, fără access group, AfterFirstUnlock): verificat static; identitatea de semnare (Team 8AR6XP8MG7) e aceeași ca la versiunea instalată → ACL neafectat. Nu există teste automate (`swift test`: fără target). NEverificat: actualizare pe Mac curat.
+- **De publicat manual**: release cu `GDCVault-0.9.0.dmg`, `GDCVault.dmg`, `GDCVault.pkg`; pagina `gdc-vault/index.html` din catalog-vendor a fost repointată la DMG (necomisă; pașii de instalare încă vorbesc de „dezarhivare”).

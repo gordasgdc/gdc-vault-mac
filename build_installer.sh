@@ -97,25 +97,6 @@ rm -rf "$PAYLOAD_ROOT" "$COMPONENT_PKG"
 # releases/latest/download/GDCVault.pkg, fara editare la fiecare release.
 cp "$FINAL_PKG" "$DIST_DIR/GDCVault.pkg"
 
-echo "==> Copying uninstaller (Dezinstalare_GDCVault.command)…"
-cp "Dezinstalare_GDCVault.command" "$DIST_DIR/Dezinstalare_GDCVault.command"
-chmod +x "$DIST_DIR/Dezinstalare_GDCVault.command"
-
-# Bundle .pkg + uninstaller + instructiuni intr-un zip curat. Pachetul e
-# semnat + notarizat + stapled, deci Gatekeeper il accepta nativ la
-# dublu-click - NU exista niciun launcher/script de bypass. Totul la
-# radacina arhivei, fara subfoldere - doar 3 fisiere, fara ambiguitate.
-echo "==> Building GDCVault-Mac.zip (pkg + uninstaller + instructiuni)…"
-ZIP_STAGE="$DIST_DIR/zip_stage"
-rm -rf "$ZIP_STAGE"
-mkdir -p "$ZIP_STAGE"
-cp "$DIST_DIR/GDCVault.pkg" "$ZIP_STAGE/"
-cp "installer/Instructiuni_Utilizare.pdf" "$ZIP_STAGE/" 2>/dev/null || true
-cp "$DIST_DIR/Dezinstalare_GDCVault.command" "$ZIP_STAGE/"
-chmod +x "$ZIP_STAGE/Dezinstalare_GDCVault.command"
-( cd "$ZIP_STAGE" && zip -q -r -y "../GDCVault-Mac.zip" . )
-rm -rf "$ZIP_STAGE"
-
-echo "==> Done: $FINAL_PKG"
-echo "==> Also: $DIST_DIR/GDCVault.pkg, $DIST_DIR/Dezinstalare_GDCVault.command, $DIST_DIR/GDCVault-Mac.zip"
-echo "    Upload GDCVault-Mac.zip to the GitHub release (that's what the website links to)."
+# [2026-09-20] Regula 45 / K: .zip si .command nu se mai produc. Distributia
+# clientului = DMG (release_dmg.sh); .pkg ramane doar canal legacy updater.
+echo "==> Done (canal legacy updater): $FINAL_PKG + $DIST_DIR/GDCVault.pkg"
