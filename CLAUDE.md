@@ -327,3 +327,4 @@ Păstrate verbatim. Regula generală la care se referă fiecare e în
 - Self-Updater: instalează `.dmg` (versiune + `codesign --verify`); `UpdateChecker` preferă `GDCVault.dmg`, cade pe `.pkg`.
 - Keychain (`VaultKeychainStore`, service `com.gordas.gdcvault`, fără access group, AfterFirstUnlock): verificat static; identitatea de semnare (Team 8AR6XP8MG7) e aceeași ca la versiunea instalată → ACL neafectat. Nu există teste automate (`swift test`: fără target). NEverificat: actualizare pe Mac curat.
 - **De publicat manual**: release cu `GDCVault-0.9.0.dmg`, `GDCVault.dmg`, `GDCVault.pkg`; pagina `gdc-vault/index.html` din catalog-vendor a fost repointată la DMG (necomisă; pașii de instalare încă vorbesc de „dezarhivare”).
+- **LIVE 2026-09-20**: release v0.9.0 publicat pe GitHub (DMG versionat + stabil + `.pkg` legacy, linkuri `latest` 200); `gordas.dev/gdc-vault/` servește pașii de instalare pe DMG.
