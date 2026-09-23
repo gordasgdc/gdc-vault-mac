@@ -6,3 +6,6 @@ dist/
 *.zip
 *.pkg
 GDC Vault.app/
+
+# Stare de lucru internă (Regula 50), doar local
+PROJECT_STATE.md

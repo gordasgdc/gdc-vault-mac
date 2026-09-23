@@ -328,3 +328,10 @@ Păstrate verbatim. Regula generală la care se referă fiecare e în
 - Keychain (`VaultKeychainStore`, service `com.gordas.gdcvault`, fără access group, AfterFirstUnlock): verificat static; identitatea de semnare (Team 8AR6XP8MG7) e aceeași ca la versiunea instalată → ACL neafectat. Nu există teste automate (`swift test`: fără target). NEverificat: actualizare pe Mac curat.
 - **Publicat 2026-09-20**: release v0.9.0 (latest) cu `GDCVault-0.9.0.dmg`, `GDCVault.dmg`, `GDCVault-0.9.0.pkg`, `GDCVault.pkg`; DMG-ul descărcat de pe linkul stabil e stapled și acceptat de `spctl`. Pagina `gdc-vault/index.html` (catalog-vendor, commit 866613a) duce la `GDCVault.dmg`, cu pașii de instalare pe DMG. Updater-ul ≤0.8.1 caută asset-ul `GDCVault.pkg` (prezent); zip-ul `GDCVault-Mac.zip` nu mai există pe release (link 404, nefolosit de niciun client).
 - **LIVE 2026-09-20**: release v0.9.0 publicat pe GitHub (DMG versionat + stabil + `.pkg` legacy, linkuri `latest` 200); `gordas.dev/gdc-vault/` servește pașii de instalare pe DMG.
+
+### Handoff — fișierul de stare (Regula 50, `~/Developer/CLAUDE.md`)
+
+- Fișierul de stare al acestui proiect: `PROJECT_STATE.md` (rădăcina repo-ului). La orice sesiune nouă se citește
+  ÎNTÂI el, apoi doar fragmentele strict necesare; se actualizează la milestone-uri și obligatoriu la final.
+  Dacă lipsește, se creează la prima sesiune care atinge proiectul. Repo PUBLIC: fișierul e intern, listat în `.gitignore` (doar local, Regula 29).
+- Restructurarea/ștergerea lui și orice modificare a acestui `CLAUDE.md`: doar cu diff-ul arătat și acordul lui Cristi.
